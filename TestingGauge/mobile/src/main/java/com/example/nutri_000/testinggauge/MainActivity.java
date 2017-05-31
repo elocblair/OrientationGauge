@@ -21,6 +21,7 @@ import android.view.WindowManager;
 import android.os.Bundle;
 
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.os.Vibrator;
 import android.content.Context;
@@ -45,6 +46,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import static android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
+import static android.view.View.VISIBLE;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -69,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothDevice firefly = null;
     private TextView fireflyStatus;
     private FloatingActionButton stimButton;
+    private Button scanForPCM;
     private String fireflyColor = "";
 
     //ble connections for the sensor
@@ -79,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView sensorStatus;
     private int stimmingThreshold = 30;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
+    private boolean isScanning = false;
+    private boolean rescan = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
         stimButton = (FloatingActionButton) findViewById(R.id.stim_buton);
+        scanForPCM = (Button) findViewById(R.id.scanButton);
+        scanForPCM.setBackgroundColor(Color.BLACK);
         fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
         sensorStatus = (TextView) findViewById(R.id.SensorStatus);
         context = (Context) this;
@@ -156,7 +163,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        scanner.stopScan(mScanCallback);
+        if(isScanning){
+            scanner.stopScan(mScanCallback);
+            isScanning = false;
+        }
         if(sensorGatt != null) {
             sensorGatt.close();
         }
@@ -171,7 +181,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
 
         super.onStop();
-        scanner.stopScan(mScanCallback);
+        if(isScanning){
+            scanner.stopScan(mScanCallback);
+            isScanning = false;
+        }
         if(sensorGatt != null) {
             sensorGatt.close();
         }
@@ -187,7 +200,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause(){
         super.onPause();
-        scanner.stopScan(mScanCallback);
+        if(isScanning){
+            scanner.stopScan(mScanCallback);
+            isScanning = false;
+        }
         if(fireflyGatt != null) {
             fireflyGatt.disconnect();
             fireflyGatt.close();
@@ -215,7 +231,11 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
                     Log.d(TAG, "coarse location permission granted");
-                    scanner.startScan(mScanCallback);
+                    if(!isScanning){
+                        isScanning = true;
+                        scanner.startScan(mScanCallback);
+                        timerHandler.postDelayed(scanTimeout, 10000);
+                    }
                 }
                 else
                 {
@@ -297,6 +317,9 @@ public class MainActivity extends AppCompatActivity {
                 if(deviceName.equals("FireflyPCM")){
                 //if(device.getDevice().getAddress().equals("24:71:89:19:F0:84")){
                     firefly = device.getDevice();
+                    if(rescan){
+                        fireflyGatt = firefly.connectGatt(getAppContext(),false,btleGattCallback);
+                    }
                 }
             }
 
@@ -406,32 +429,28 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
-            if(gatt == fireflyGatt){
-                if (newState == 0){
-                    //Log.v(TAG, "Firefly disconnected " + status);
-                    setFireflyStatus("Disconnected");
-                    scanner.startScan(mScanCallback);
-                }
-            }
-            if(gatt == sensorGatt){
-                if(newState == 0){
-                    setSensorStatus("Disconnected");
-                    scanner.startScan(mScanCallback);
-                }
-                else if(newState == 2){
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
-                        }
-                    });
-                    timerHandler.postDelayed(connectedBackgroundColorReset,3000);
-                }
-            }
             if(newState == 0)
             {
-                Log.v("BLUETOOTH", "DISCONNECTED");
-            } else if( newState == 1)
+                if(gatt == sensorGatt){
+                    setSensorStatus("Searching");
+                    if(!isScanning){
+                        isScanning = true;
+                        scanner.startScan(mScanCallback);
+                        timerHandler.postDelayed(scanTimeout, 10000);
+                    }
+
+                    Log.v("BLUETOOTH", "DISCONNECTED");
+                }
+                if(gatt == fireflyGatt){
+                    setFireflyStatus("Disconnected");
+                    if(!isScanning){
+                        isScanning = true;
+                        scanner.startScan(mScanCallback);
+                        timerHandler.postDelayed(scanTimeout, 10000);
+                    }
+                }
+            }
+            else if( newState == 1)
             {
                 Log.v("BLUETOOTH", "CONNECTING");
             }
@@ -439,8 +458,16 @@ public class MainActivity extends AppCompatActivity {
             {
                 Log.v("BLUETOOTH", "CONNECTED");
                 if(gatt == sensorGatt) {
+                    connectedToSensor = true;
                     sensorGatt.discoverServices();
                     setSensorStatus("Connecting...");
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
+                        }
+                    });
+                    timerHandler.postDelayed(connectedBackgroundColorReset,3000);
                 } else if(gatt == fireflyGatt)
                 {
                     fireflyGatt.discoverServices();
@@ -504,10 +531,9 @@ public class MainActivity extends AppCompatActivity {
                     if(characteristics.get(i).getUuid().toString().equals("0000beef-1212-efde-1523-785fef13d123"))
                     {
                         setSensorStatus("Connected");
+                        connectedToSensor = true;
                         Log.v("NRF Sensor", "FOUND CHARACTERISTIC");
                         NRF_CHARACTERISTIC = service.getCharacteristic(UUID.fromString("0000beef-1212-efde-1523-785fef13d123"));
-
-                        connectedToSensor = true;
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -523,19 +549,31 @@ public class MainActivity extends AppCompatActivity {
 
                         if(!connectedToFirefly) {
                             if(fireflyGatt != null){
-                                //Log.d(TAG, "null\n");
+                                if(isScanning){
+                                    scanner.stopScan(mScanCallback);
+                                    isScanning = false;
+                                }
                                 fireflyGatt = firefly.connectGatt(context, false, btleGattCallback);
-
                             }
                             if(fireflyGatt == null){
-                                scanner.stopScan(mScanCallback);
+                                if(isScanning){
+                                    scanner.stopScan(mScanCallback);
+                                    isScanning = false;
+                                }
+                                rescan = true;
+                                if(!isScanning) {
+                                    scanner.startScan(mScanCallback);
+                                    timerHandler.postDelayed(scanTimeout, 5000);
+                                }
                             }
-                            //fireflyGatt = firefly.connectGatt(context, false, btleGattCallback);
                         }
                     }
                     if(characteristics.get(i).getUuid().toString().equals("0000fff2-0000-1000-8000-00805f9b34fb"))
                     {
-                        scanner.stopScan(mScanCallback);
+                        if(isScanning){
+                            scanner.stopScan(mScanCallback);
+                            isScanning = false;
+                        }
                         setFireflyStatus("Connected");
                         Log.v("FIREFLY", "FOUND CHARACTERISTIC");
                         FIREFLY_CHARACTERISTIC2 = characteristics.get(i);
@@ -550,7 +588,6 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                         if(!connectedToSensor) {
-
 
                         }
                     }
@@ -625,6 +662,35 @@ public class MainActivity extends AppCompatActivity {
             connectionCheckHandler.postDelayed(checkConnectedStatus, 1000);
         }
     };
+    Runnable scanTimeout = new Runnable() {
+        @Override
+        public void run() {
+            if(isScanning){
+                scanner.stopScan(mScanCallback);
+                isScanning = false;
+            }
+            if(!connectedToSensor){
+                if(!isScanning){
+                    isScanning = true;
+                    scanner.startScan(mScanCallback);
+                    timerHandler.postDelayed(scanTimeout, 10000);
+                }
+            }
+            else if(connectedToSensor & !connectedToFirefly){
+                scanner.stopScan(mScanCallback);
+                Log.v(TAG, "scan stopped for good");
+                scanForPCM.setVisibility(VISIBLE);
+
+            }
+        }
+    };
+    public void scanAgain(View v){
+        if(!isScanning){
+            isScanning = true;
+            scanner.startScan(mScanCallback);
+            timerHandler.postDelayed(scanTimeout, 10000);
+        }
+    }
 
 }
 
