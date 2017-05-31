@@ -433,6 +433,15 @@ public class MainActivity extends AppCompatActivity {
             {
                 if(gatt == sensorGatt){
                     setSensorStatus("Searching");
+                    connectedToSensor = false;
+                    rescan = false;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            scanForPCM.setVisibility(View.INVISIBLE);
+
+                        }
+                    });
                     if(!isScanning){
                         isScanning = true;
                         scanner.startScan(mScanCallback);
