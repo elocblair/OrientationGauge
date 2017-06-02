@@ -47,23 +47,32 @@ import java.util.Locale;
 
 import static android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
 import static android.view.View.VISIBLE;
+import static com.example.nutri_000.testinggauge.R.id.calibrate;
 
 
 public class MainActivity extends AppCompatActivity {
+
+
     private static final String TAG = "Cole";
     protected UUID[] serviceUUIDs;
     private final static int REQUEST_ENABLE_BT = 1;
     private boolean currentlyStimming = false;
     private ArcProgress gauge;
     private SeekArc seekArc;
+
+    //TIMERS
     Handler timerHandler = new Handler();
     Handler connectionCheckHandler = new Handler();
+
+
     private CoordinatorLayout mContainerView;
     private Vibrator v;
     private BluetoothAdapter adapter;
     private static Context context;
+
     private BluetoothLeScanner scanner;
     private int displayDataCounter = 0;
+
     //BLE connections for the firefly
     boolean connectedToFirefly = false;
     private BluetoothGatt fireflyGatt;
@@ -85,6 +94,10 @@ public class MainActivity extends AppCompatActivity {
     private boolean isScanning = false;
     private boolean rescan = false;
 
+
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,65 +105,60 @@ public class MainActivity extends AppCompatActivity {
         MainActivity.context = getApplicationContext();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
+        context = (Context) this;
+
         stimButton = (FloatingActionButton) findViewById(R.id.stim_buton);
         scanForPCM = (Button) findViewById(R.id.scanButton);
         scanForPCM.setBackgroundColor(Color.BLACK);
         fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
         sensorStatus = (TextView) findViewById(R.id.SensorStatus);
-        context = (Context) this;
         gauge = (ArcProgress)findViewById(R.id.arc_progress);
         seekArc = (SeekArc)findViewById(R.id.seekArc);
         seekArc.setSweepAngle(290);
         seekArc.setArcRotation(215);
+        //seekArc.setSweepAngle(360);
+        //seekArc.setArcRotation(20);
         seekArc.setProgress(30);
         seekArc.setArcColor(0x00000000);
         seekArc.setProgressColor(0x00000000);
 
+        //bluetooth section
         serviceUUIDs = new UUID[1];
         serviceUUIDs[0] = UUID.fromString("0000AA80-0000-1000-8000-00805f9b34fb");
         mContainerView = (CoordinatorLayout) findViewById(R.id.container);
         mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-        //bluetooth section
         adapter = BluetoothAdapter.getDefaultAdapter();
         scanner = adapter.getBluetoothLeScanner();
-        seekArc.setOnSeekArcChangeListener(new OnSeekArcChangeListener() {
 
+        seekArc.setOnSeekArcChangeListener(new OnSeekArcChangeListener() {
             @Override
             public void onStopTrackingTouch(SeekArc seekArc) {
             }
-
             @Override
             public void onStartTrackingTouch(SeekArc seekArc) {
             }
-
             @Override
             public void onProgressChanged(SeekArc seekArc, int progress,
                                           boolean fromUser) {
                 stimmingThreshold = progress;
                 Log.v("progress", progress + "");
             }
-
         });
         stimButton.bringToFront();
-
-
         if(!adapter.isEnabled())
         {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
             Log.v("BLUETOOTH ENABLED", adapter.enable() + "");
         }
-
         if(adapter.isEnabled())
         {
             Log.v("BLUETOOTH ENABLED", "TRUE");
             setSensorStatus("Searching...");
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
-
         } else {
             Log.v("BLUETOOTH ENABLED", "FALSE");
         }
-
         v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         if(v.hasVibrator())
         {
@@ -175,7 +183,6 @@ public class MainActivity extends AppCompatActivity {
             fireflyGatt.close();
         }
         Log.v("onDestroy", "DESTROYED");
-
     }
     @Override
     protected void onStop() {
@@ -194,8 +201,6 @@ public class MainActivity extends AppCompatActivity {
         }
         //adapter.disable();
         Log.v("onStop", "STOPPED");
-
-
     }
     @Override
     protected void onPause(){
@@ -208,8 +213,12 @@ public class MainActivity extends AppCompatActivity {
             fireflyGatt.disconnect();
             fireflyGatt.close();
         }
-
     }
+
+
+
+
+
     //stim button clicked
     public void stimClicked(View v)
     {
@@ -217,9 +226,11 @@ public class MainActivity extends AppCompatActivity {
             currentlyStimming = true;
             triggerFirefly(startStim);
             timerHandler.postDelayed(timerRunnable, 1000);
-
         }
     }
+
+
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults)
@@ -259,17 +270,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
+
+
     //le scan callback
     private BluetoothDevice peripheral;
     public static Context getAppContext(){
         return MainActivity.context;
     }
     public static byte [] startStim = {12, 1, 2, 3, 4, 60, 0, 0, 24, 83, 12, 13, (byte)0xc1};
-    //public static byte [] startStim = {2, 0, 1};
     int mtu_flag = 0;
     int charfound = 0;
     int char4found = 0;
-
     public static byte [] stopStim = {2, 0, 0};
 
     public ScanCallback mScanCallback = new ScanCallback()
@@ -277,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onScanResult(int callbackType, ScanResult result)
         {
-            Log.d(TAG, "onScanResult");
+            Log.v(TAG, "onScanResult");
 
             processResult(result);
         }
@@ -285,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBatchScanResults(List<ScanResult> results)
         {
-            Log.d(TAG, "onBatchScanResults: " + results.size() + " results");
+            Log.i(TAG, "onBatchScanResults: " + results.size() + " results");
             for (ScanResult result : results)
             {
                 processResult(result);
@@ -301,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
         private void processResult(ScanResult device)
         {
             Log.i(TAG, "New LE Device: " + device.getDevice().getName() + " @ " + device.getRssi());
-            Log.d(TAG, "Address " + device.getDevice().getAddress());
+            Log.i(TAG, "Address " + device.getDevice().getAddress());
 
             String deviceName;
             deviceName = device.getDevice().getName();
@@ -309,22 +322,25 @@ public class MainActivity extends AppCompatActivity {
                 if (deviceName.equals("JohnCougarMellenc"))
                 {
                     peripheral = device.getDevice();
-                    if(device.getRssi() > -35){
+                    if(device.getRssi() >= -39){
                         sensorGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
                         //Log.d(TAG, "found device");
                     }
                 }
                 if(deviceName.equals("FireflyPCM")){
-                //if(device.getDevice().getAddress().equals("24:71:89:19:F0:84")){
                     firefly = device.getDevice();
                     if(rescan){
                         fireflyGatt = firefly.connectGatt(getAppContext(),false,btleGattCallback);
                     }
                 }
             }
-
         }
     };
+
+
+    boolean bgFlag = false;
+
+    //GAUGE
     public void setGaugeValue(final int value) {
         runOnUiThread(new Runnable() {
             @Override
@@ -333,7 +349,6 @@ public class MainActivity extends AppCompatActivity {
                     gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
                 }
                 gauge.setProgress(value);
-
             }
         });
     }
@@ -352,13 +367,20 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                    gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
-                    gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
+                    if (!bgFlag){
+                        mContainerView.setBackgroundColor(Color.parseColor("#333333"));
+                        gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
+                        gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
+                    }
                 }
             });
         }
     }
+
+
+    float gravX, gravY, gravZ;
+
+    //GATT CALLBACK
     private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
@@ -369,10 +391,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.v(TAG, "sensor descriptor status "+ status);
             }
         }
-
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
-            // this will get called anytime you perform a read or write characteristic operation
             if(gatt == fireflyGatt){
                 Log.v(TAG, "notify from PCM");
             }
@@ -382,7 +402,7 @@ public class MainActivity extends AppCompatActivity {
                 int MSB = temp[1] << 8;
                 int LSB = temp[0] & 0x000000FF;
                 int val = MSB | LSB;
-                float gyroX = val * 0.0625f;
+                float gyroZ = val * 0.0625f;
                 MSB = temp[3] << 8;
                 LSB = temp[2] & 0x000000FF;
                 val = MSB | LSB;
@@ -390,23 +410,93 @@ public class MainActivity extends AppCompatActivity {
                 MSB = temp[5] << 8;
                 LSB = temp[4] & 0x000000FF;
                 val = MSB | LSB;
-                float gyroZ = val * 0.0625f;
+                float gyroX = val * 0.0625f;
 
-                final String output = (int)gyroX + "\n" + (int)gyroY + "\n" + (int)gyroZ;
+                MSB = temp[7] << 8;
+                LSB = temp[6] & 0x000000FF;
+                val = MSB|LSB;
+                 gravX = -1.0f*val*0.001f;
+                MSB = temp[9] <<8;
+                LSB = temp[8] & 0x000000FF;
+                val = MSB|LSB;
+                 gravY = -1.0f*val*0.001f;
+                MSB = temp[11] << 8;
+                LSB = temp[10] & 0x000000FF;
+                val = MSB|LSB;
+                 gravZ = -1.0f*val*0.001f;
+
+
+                //final String output = gravY + "\t" + gravZ;
+                final String output = (int)gyroX + "\t" + (int)gyroY + "\t" + (int)gyroZ + "\t" + gravX + "\t" +gravY + "\t" + gravZ;
+                Log.v("Euler ", output);
                 int gaugeValue = 0;
 
-                if(((gyroZ - 90.0f) > 0.0f) & gyroZ < 190.0f)
-                {
-                    gaugeValue = (int)(gyroZ - 90.0f);
+
+                //LOWER LEG
+                if(flag ==1){
+                    if(gravY > gravZ){
+                        gaugeValue = (int)(-1.0f*(gyroY + 90));
+                    }
+                    else if(gravY < gravZ){
+                        gaugeValue = (int)((gyroY + 90));
+                    }
+                    //gaugeValue = (int)(gyroY +90);
                 }
-                else if(gyroZ >= 190.0f & gyroZ < 270.0f)
-                {
-                    gaugeValue = 100;
+                if(flag == 3){
+                    if(gravY > gravZ){
+                        gaugeValue = (int)((90 - gyroY));
+                    }
+                    else if(gravY < gravZ){
+                        gaugeValue = (int)(-1.0f*(90 - gyroY));
+                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                   }
+                if(flag == 2){
+                    if(gyroX > 90){
+                        gaugeValue = (int)(-1.0f*(gyroX - 90));
+                    }
+                    if(gyroX <= 90){
+                        gaugeValue = (int)(-1.0f*(gyroX - 90));
+                    }
                 }
-                else if(gyroZ >= 270.0f || gyroZ <= 90.0f)
+                if(flag == 4){
+                    if (gyroX > -90){
+                        gaugeValue = (int)(-1.0f*(gyroX+90));
+                    }
+                    if(gyroX <= -90){
+                        gaugeValue = (int)(-1.0f*(gyroX+90));
+                    }
+                }
+
+
+                // Q1
+                /*if((gyroX > 0.0f) & (gyroX < 90.0f))
+                {
+                    gaugeValue = (int)gyroX;
+                }
+                //Q2
+                else if(gyroX >= 90.0f & gyroX < 180.0f)
+                {
+                    gaugeValue = (int)(gyroX - 90.0f);
+                }
+                //Q3 and Q4
+                else if(gyroX >= -180.0f & gyroX <= 0.0f)
                 {
                     gaugeValue = 0;
+                }*/
+                // ONE Quadrant
+                /*if(((gyroX - 90.0f) > 0.0f) & gyroX < 190.0f)
+                {
+                    gaugeValue = (int)(gyroX - 90.0f);
                 }
+                else if(gyroX >= 190.0f & gyroX < 270.0f)
+                {
+                    gaugeValue = 90;
+                }
+                else if(gyroX >= 270.0f || gyroX <= 90.0f)
+                {
+                    gaugeValue = 0;
+                }*/
+
                 if(displayDataCounter == 1) {
                     displayDataCounter = 0;
                     if (gaugeValue > stimmingThreshold & gaugeValue < 225) {
@@ -470,6 +560,7 @@ public class MainActivity extends AppCompatActivity {
                     connectedToSensor = true;
                     sensorGatt.discoverServices();
                     setSensorStatus("Connecting...");
+                    bgFlag = true;
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -488,9 +579,7 @@ public class MainActivity extends AppCompatActivity {
             {
                 Log.v("BLUETOOTH", "DISCONNECTING");
             }
-
         }
-
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             if(gatt == fireflyGatt){
@@ -500,7 +589,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt,
                                           BluetoothGattCharacteristic characteristic, int status) {
@@ -510,12 +598,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         }
-
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic,int status) {
             Log.v(TAG, "charRead");
         }
-
         @Override
         public void onServicesDiscovered(final BluetoothGatt gatt, final int status) {
             if(status == BluetoothGatt.GATT_SUCCESS) {
@@ -603,8 +689,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-
     };
+
+    //SENSOR STATUS TEXT
     public void setSensorStatus(String message)
     {
         final String msg = "Sensor " + message;
@@ -617,6 +704,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    //fIREfLY STATUS TEXT
     public void setFireflyStatus(String message)
     {
         final String msg = fireflyColor +" Firefly " + message;
@@ -628,16 +717,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    //START AND STOP COMMANDS 4 FIREFLY
     public void triggerFirefly(byte[] onOff)
     {
         if(charfound == 1 & char4found == 0) {
 
             FIREFLY_CHARACTERISTIC2.setValue(onOff);
             boolean b = fireflyGatt.writeCharacteristic(FIREFLY_CHARACTERISTIC2);
-            Log.v(TAG, "write status = " + b);
+            Log.i(TAG, "firefly write status = " + b);
         }
     }
-
     Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -648,9 +738,11 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+
     Runnable connectedBackgroundColorReset = new Runnable() {
         @Override
         public void run() {
+            bgFlag = false;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -660,6 +752,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    //
     Runnable checkConnectedStatus = new Runnable() {
         @Override
         public void run() {
@@ -687,6 +780,7 @@ public class MainActivity extends AppCompatActivity {
             }
             else if(connectedToSensor & !connectedToFirefly){
                 scanner.stopScan(mScanCallback);
+                isScanning = false;
                 Log.v(TAG, "scan stopped for good");
                 scanForPCM.setVisibility(VISIBLE);
 
@@ -700,6 +794,52 @@ public class MainActivity extends AppCompatActivity {
             timerHandler.postDelayed(scanTimeout, 10000);
         }
     }
+    int calibrationCounter = 0;
+    int flag = 0;
+    float averageX, averageY = 0;
+    public void gravityOrientation(View v){
+        //calibrationCounter++;
+        averageX = 0;
+        averageY = 0;
+        flag = 0;
+        timerHandler.postDelayed(calibrationRepeat, 20);
+        calibrationCounter = 0;
+        //check for gravity vector values
+    }
+    public void gravity(){
+        calibrationCounter++;
+        if(calibrationCounter < 20){
+            averageX = averageX + gravX;
+            averageY = averageY + gravY;
+            timerHandler.postDelayed(calibrationRepeat, 20);
+        }
+        if(calibrationCounter == 20){
+            averageX = averageX/20.0f;
+            averageY = averageY/20.0f;
+            if(averageX > .80f){
+                flag = 1;
+            }
+            else if( averageY >.80f){
+                flag = 2;
+            }
+            else if(averageX < -0.8f){
+                flag = 3;
+            }
+            else if(averageY < -0.8f){
+                flag = 4;
+            }
+            else{
+                flag = 0;
+            }
+            //timerHandler.postDelayed(calibrationRepeat, 20);
+        }
+    }
+    Runnable calibrationRepeat = new Runnable() {
+        @Override
+        public void run() {
+            gravity();
+        }
+    };
 
 }
 
