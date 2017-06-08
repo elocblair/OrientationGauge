@@ -22,13 +22,13 @@ import android.os.Bundle;
 
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.os.Vibrator;
 import android.content.Context;
 import android.content.Intent;
 import android.bluetooth.*;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -36,18 +36,9 @@ import java.util.List;
 import java.util.UUID;
 import android.util.Log;
 
-import com.github.lzyzsd.circleprogress.ArcProgress;
-import com.triggertrap.seekarc.SeekArc;
-import com.triggertrap.seekarc.SeekArc.OnSeekArcChangeListener;
-
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 import static android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
 import static android.view.View.VISIBLE;
-import static com.example.nutri_000.testinggauge.R.id.calibrate;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -57,8 +48,8 @@ public class MainActivity extends AppCompatActivity {
     protected UUID[] serviceUUIDs;
     private final static int REQUEST_ENABLE_BT = 1;
     private boolean currentlyStimming = false;
-    private ArcProgress gauge;
-    private SeekArc seekArc;
+
+
 
     //TIMERS
     Handler timerHandler = new Handler();
@@ -70,7 +61,8 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter adapter;
     private static Context context;
 
-    private BluetoothLeScanner scanner;
+    private BluetoothLeScanner scanner ;
+
     private int displayDataCounter = 0;
 
     //BLE connections for the firefly
@@ -80,12 +72,13 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothDevice firefly = null;
     private TextView fireflyStatus;
     private FloatingActionButton stimButton;
-    private Button scanForPCM;
+    private Button scanForPCM,ULConnect, LLConnect,footConnect;
     private String fireflyColor = "";
+
 
     //ble connections for the sensor
     boolean connectedToSensor = false;
-    private BluetoothGatt sensorGatt;
+    private BluetoothGatt sensorGatt, upperLegGatt, lowerLegGatt, footGatt;
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     private BluetoothDevice MPU9250 = null;
     private TextView sensorStatus;
@@ -93,10 +86,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private boolean isScanning = false;
     private boolean rescan = false;
-
-
-
-
+    private ProgressBar topLeftPB, topRightPB, midLeftPB,midRightPB,bottomLeftPB,bottomRightPB;
+    private TextView topAngle;
+    private TextView midAngle;
+    private TextView bottomAngle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,18 +102,23 @@ public class MainActivity extends AppCompatActivity {
 
         stimButton = (FloatingActionButton) findViewById(R.id.stim_buton);
         scanForPCM = (Button) findViewById(R.id.scanButton);
-        scanForPCM.setBackgroundColor(Color.BLACK);
-        fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
+        ULConnect = (Button) findViewById(R.id.upperLegButton);
+        LLConnect = (Button) findViewById(R.id.lowerLegButton);
+        footConnect = (Button) findViewById(R.id.footButton);
+        //fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
         sensorStatus = (TextView) findViewById(R.id.SensorStatus);
-        gauge = (ArcProgress)findViewById(R.id.arc_progress);
-        seekArc = (SeekArc)findViewById(R.id.seekArc);
-        seekArc.setSweepAngle(290);
-        seekArc.setArcRotation(215);
-        //seekArc.setSweepAngle(360);
-        //seekArc.setArcRotation(20);
-        seekArc.setProgress(30);
-        seekArc.setArcColor(0x00000000);
-        seekArc.setProgressColor(0x00000000);
+        topLeftPB = (ProgressBar)findViewById(R.id.progressBarTopLeft);
+        topLeftPB.setRotation(180);
+        topRightPB = (ProgressBar)findViewById(R.id.progressBarTopRight);
+        midLeftPB = (ProgressBar)findViewById(R.id.progressBarMidLeft);
+        midLeftPB.setRotation(180);
+        midRightPB = (ProgressBar)findViewById(R.id.progressBarMidRight);
+        bottomLeftPB = (ProgressBar)findViewById(R.id.progressBarBottomLeft);
+        bottomLeftPB.setRotation(180);
+        bottomRightPB = (ProgressBar)findViewById(R.id.progressBarBottomRight);
+        topAngle = (TextView) findViewById(R.id.topAngle);
+        midAngle = (TextView) findViewById(R.id.midAngle);
+        bottomAngle = (TextView) findViewById(R.id.bottomAngle);
 
         //bluetooth section
         serviceUUIDs = new UUID[1];
@@ -130,20 +128,6 @@ public class MainActivity extends AppCompatActivity {
         adapter = BluetoothAdapter.getDefaultAdapter();
         scanner = adapter.getBluetoothLeScanner();
 
-        seekArc.setOnSeekArcChangeListener(new OnSeekArcChangeListener() {
-            @Override
-            public void onStopTrackingTouch(SeekArc seekArc) {
-            }
-            @Override
-            public void onStartTrackingTouch(SeekArc seekArc) {
-            }
-            @Override
-            public void onProgressChanged(SeekArc seekArc, int progress,
-                                          boolean fromUser) {
-                stimmingThreshold = progress;
-                Log.v("progress", progress + "");
-            }
-        });
         stimButton.bringToFront();
         if(!adapter.isEnabled())
         {
@@ -284,6 +268,8 @@ public class MainActivity extends AppCompatActivity {
     int charfound = 0;
     int char4found = 0;
     public static byte [] stopStim = {2, 0, 0};
+    boolean awaitingResponse = false;
+
 
     public ScanCallback mScanCallback = new ScanCallback()
     {
@@ -321,18 +307,41 @@ public class MainActivity extends AppCompatActivity {
             if (deviceName != null){
                 if (deviceName.equals("JohnCougarMellenc"))
                 {
-                    peripheral = device.getDevice();
-                    if(device.getRssi() >= -39){
-                        sensorGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                    if(device.getRssi() >= -42){
+                        if(isScanning){
+                            scanner.stopScan(mScanCallback);
+                        }
+                        peripheral = device.getDevice();
+                        //sensorGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                        if(!awaitingResponse) {
+                            awaitingResponse = true;
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    setSensorStatus("Found...");
+                                    mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
+                                    timerHandler.postDelayed(connectedBackgroundColorReset, 2000);
+                                    if (upperLegGatt == null) {
+                                        ULConnect.setVisibility(VISIBLE);
+                                    }
+                                    if (lowerLegGatt == null) {
+                                        LLConnect.setVisibility(VISIBLE);
+                                    }
+                                    if (footGatt == null) {
+                                        footConnect.setVisibility(VISIBLE);
+                                    }
+                                }
+                            });
+                        }
                         //Log.d(TAG, "found device");
                     }
                 }
-                if(deviceName.equals("FireflyPCM")){
+                /*if(deviceName.equals("FireflyPCM")){
                     firefly = device.getDevice();
                     if(rescan){
                         fireflyGatt = firefly.connectGatt(getAppContext(),false,btleGattCallback);
                     }
-                }
+                }*/
             }
         }
     };
@@ -346,9 +355,61 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (value == 0) {
-                    gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
+                    //gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
                 }
-                gauge.setProgress(value);
+                if(value < 0) {
+                    topLeftPB.setProgress(-1*value);
+                    topRightPB.setProgress(0);
+
+                }
+                else if(value > 0){
+                    topLeftPB.setProgress(0);
+                    topRightPB.setProgress(value);
+                }
+
+                topAngle.setText(Integer.toString(value));
+            }
+        });
+    }
+    public void setGaugeValueLL(final int value) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (value == 0) {
+                    //gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
+                }
+                if(value < 0) {
+                    midLeftPB.setProgress(-1*value);
+                    midRightPB.setProgress(0);
+
+                }
+                else if(value > 0){
+                    midLeftPB.setProgress(0);
+                    midRightPB.setProgress(value);
+                }
+
+                midAngle.setText(Integer.toString(value));
+            }
+        });
+    }
+    public void setGaugeValueFoot(final int value) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (value == 0) {
+                    //gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
+                }
+                if(value < 0) {
+                    bottomLeftPB.setProgress(-1*value);
+                    bottomRightPB.setProgress(0);
+
+                }
+                else if(value > 0){
+                    bottomLeftPB.setProgress(0);
+                    bottomRightPB.setProgress(value);
+                }
+
+                bottomAngle.setText(Integer.toString(value));
             }
         });
     }
@@ -358,9 +419,11 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mContainerView.setBackgroundColor(Color.parseColor("#009900"));
-                    gauge.setFinishedStrokeColor(Color.parseColor("#ffffff"));
-                    gauge.setUnfinishedStrokeColor(Color.parseColor("#007700"));
+                    //mContainerView.setBackgroundColor(Color.parseColor("#009900"));
+
+
+                    //gauge.setFinishedStrokeColor(Color.parseColor("#ffffff"));
+                    //gauge.setUnfinishedStrokeColor(Color.parseColor("#007700"));
                 }
             });
         } else {
@@ -369,8 +432,8 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     if (!bgFlag){
                         mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                        gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
-                        gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
+                       // gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
+                       // gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
                     }
                 }
             });
@@ -393,10 +456,7 @@ public class MainActivity extends AppCompatActivity {
         }
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
-            if(gatt == fireflyGatt){
-                Log.v(TAG, "notify from PCM");
-            }
-            if(gatt == sensorGatt) {
+            if(gatt == upperLegGatt | gatt == lowerLegGatt | gatt == footGatt) {
                 displayDataCounter++;
                 byte[] temp = characteristic.getValue();
                 int MSB = temp[1] << 8;
@@ -428,7 +488,7 @@ public class MainActivity extends AppCompatActivity {
 
                 //final String output = gravY + "\t" + gravZ;
                 final String output = (int)gyroX + "\t" + (int)gyroY + "\t" + (int)gyroZ + "\t" + gravX + "\t" +gravY + "\t" + gravZ;
-                Log.v("Euler ", output);
+                Log.v(gatt.toString() , output);
                 int gaugeValue = 0;
 
 
@@ -468,6 +528,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
 
+
                 // Q1
                 /*if((gyroX > 0.0f) & (gyroX < 90.0f))
                 {
@@ -484,9 +545,11 @@ public class MainActivity extends AppCompatActivity {
                     gaugeValue = 0;
                 }*/
                 // ONE Quadrant
-                /*if(((gyroX - 90.0f) > 0.0f) & gyroX < 190.0f)
-                {
-                    gaugeValue = (int)(gyroX - 90.0f);
+                if(((gyroX - 90.0f) > 0.0f) & gyroX < 190.0f) {
+                    gaugeValue = (int) (gyroX - 90.0f);
+                }
+                if(((gyroX) > 0.0f) & gyroX < 90){
+                    gaugeValue = (int) (gyroX-90.0f);
                 }
                 else if(gyroX >= 190.0f & gyroX < 270.0f)
                 {
@@ -495,11 +558,17 @@ public class MainActivity extends AppCompatActivity {
                 else if(gyroX >= 270.0f || gyroX <= 90.0f)
                 {
                     gaugeValue = 0;
-                }*/
+                }
+                if((gyroX > -90.0f) & (gyroX <= 0.0f)){
+                    gaugeValue = -90;
+                }
+                if((gyroX > -180.0f) & (gyroX <= -90.0f)){
+                    gaugeValue = 90;
+                }
 
-                if(displayDataCounter == 1) {
-                    displayDataCounter = 0;
-                    if (gaugeValue > stimmingThreshold & gaugeValue < 225) {
+                //if(displayDataCounter == 1) {
+                    //displayDataCounter = 0;
+                    /*if (gaugeValue > stimmingThreshold & gaugeValue < 225) {
                         setGaugeProperties(true);
                         if(currentlyStimming == false) {
                             currentlyStimming = true;
@@ -511,9 +580,18 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         setGaugeProperties(false);
 
+                    }*/
+                    if(gatt == upperLegGatt) {
+                        setGaugeValue(gaugeValue);
                     }
-                    setGaugeValue(gaugeValue);
-                }
+                    if(gatt == lowerLegGatt){
+                        setGaugeValueLL(gaugeValue);
+                    }
+                    if(gatt == footGatt){
+                        setGaugeValueFoot(gaugeValue);
+                    }
+
+                //}
             }
         }
 
@@ -521,23 +599,64 @@ public class MainActivity extends AppCompatActivity {
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             if(newState == 0)
             {
-                if(gatt == sensorGatt){
-                    setSensorStatus("Searching");
-                    connectedToSensor = false;
-                    rescan = false;
-                    runOnUiThread(new Runnable() {
+                if(gatt == upperLegGatt) {
+                    setSensorStatus("Disconnected");
+                    //connectedToSensor = false;
+                    //rescan = false;
+                    /*runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             scanForPCM.setVisibility(View.INVISIBLE);
 
                         }
-                    });
-                    if(!isScanning){
+                    });*/
+                    /*if(!isScanning){
                         isScanning = true;
                         scanner.startScan(mScanCallback);
                         timerHandler.postDelayed(scanTimeout, 10000);
-                    }
+                    }*/
+                    upperLegGatt = null;
+                    upperLegGatt.close();
+                    Log.v("BLUETOOTH", "DISCONNECTED");
+                }
+                if(gatt == lowerLegGatt){
+                    setSensorStatus("Disconnected");
+                    //connectedToSensor = false;
+                    //rescan = false;
+                    /*runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            scanForPCM.setVisibility(View.INVISIBLE);
 
+                        }
+                    });*/
+                    /*if(!isScanning){
+                        isScanning = true;
+                        scanner.startScan(mScanCallback);
+                        timerHandler.postDelayed(scanTimeout, 10000);
+                    }*/
+                    lowerLegGatt = null;
+                    lowerLegGatt.close();
+                    Log.v("BLUETOOTH", "DISCONNECTED");
+                }
+                if(gatt == footGatt){
+                    setSensorStatus("Disconnected");
+                    //connectedToSensor = false;
+                    //rescan = false;
+                    /*runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            scanForPCM.setVisibility(View.INVISIBLE);
+
+                        }
+                    });*/
+                    /*if(!isScanning){
+                        isScanning = true;
+                        scanner.startScan(mScanCallback);
+                        timerHandler.postDelayed(scanTimeout, 10000);
+                    }*/
+                    footGatt = null;
+                    footGatt.close();
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == fireflyGatt){
@@ -556,24 +675,51 @@ public class MainActivity extends AppCompatActivity {
             else if( newState == 2)
             {
                 Log.v("BLUETOOTH", "CONNECTED");
-                if(gatt == sensorGatt) {
+                if(gatt == upperLegGatt) {
                     connectedToSensor = true;
-                    sensorGatt.discoverServices();
+                    upperLegGatt.discoverServices();
                     setSensorStatus("Connecting...");
                     bgFlag = true;
-                    runOnUiThread(new Runnable() {
+                    /*runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
                         }
                     });
-                    timerHandler.postDelayed(connectedBackgroundColorReset,3000);
-                } else if(gatt == fireflyGatt)
+                    timerHandler.postDelayed(connectedBackgroundColorReset,3000);*/
+                }
+                else if(gatt == lowerLegGatt) {
+                    connectedToSensor = true;
+                    lowerLegGatt.discoverServices();
+                    setSensorStatus("Connecting...");
+                    bgFlag = true;
+                    /*runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
+                        }
+                    });
+                    timerHandler.postDelayed(connectedBackgroundColorReset,3000);*/
+                }
+                else if(gatt == footGatt) {
+                    connectedToSensor = true;
+                    footGatt.discoverServices();
+                    setSensorStatus("Connecting...");
+                    bgFlag = true;
+                    /*runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
+                        }
+                    });
+                    timerHandler.postDelayed(connectedBackgroundColorReset,3000);*/
+                }
+                /*else if(gatt == fireflyGatt)
                 {
                     fireflyGatt.discoverServices();
                     setFireflyStatus("Connecting...");
                     fireflyGatt.requestMtu(76);
-                }
+                }*/
             }
             else if(newState == 3)
             {
@@ -614,7 +760,7 @@ public class MainActivity extends AppCompatActivity {
                 setSensorStatus("Connecting...");
             } else
             {
-                setFireflyStatus("Connecting...");
+                //setFireflyStatus("Connecting...");
             }
             for (BluetoothGattService service : services) {
                 List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
@@ -626,6 +772,9 @@ public class MainActivity extends AppCompatActivity {
                     if(characteristics.get(i).getUuid().toString().equals("0000beef-1212-efde-1523-785fef13d123"))
                     {
                         setSensorStatus("Connected");
+                        if(isScanning){
+                            scanner.stopScan(mScanCallback);
+                        }
                         connectedToSensor = true;
                         Log.v("NRF Sensor", "FOUND CHARACTERISTIC");
                         NRF_CHARACTERISTIC = service.getCharacteristic(UUID.fromString("0000beef-1212-efde-1523-785fef13d123"));
@@ -635,14 +784,14 @@ public class MainActivity extends AppCompatActivity {
                                 sensorStatus.setTextColor(Color.parseColor("#ffffff"));
                             }
                         });
-                        sensorGatt.setCharacteristicNotification(NRF_CHARACTERISTIC,true);
+                        gatt.setCharacteristicNotification(NRF_CHARACTERISTIC,true);
                         UUID dUUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
                         BluetoothGattDescriptor notifyDescriptor = NRF_CHARACTERISTIC.getDescriptor(dUUID);
                         notifyDescriptor.setValue(ENABLE_NOTIFICATION_VALUE);
-                        boolean b = sensorGatt.writeDescriptor(notifyDescriptor);
+                        boolean b = gatt.writeDescriptor(notifyDescriptor);
                         Log.v("descriptor write ", String.valueOf(b) );
 
-                        if(!connectedToFirefly) {
+                        /*if(!connectedToFirefly) {
                             if(fireflyGatt != null){
                                 if(isScanning){
                                     scanner.stopScan(mScanCallback);
@@ -661,7 +810,7 @@ public class MainActivity extends AppCompatActivity {
                                     timerHandler.postDelayed(scanTimeout, 5000);
                                 }
                             }
-                        }
+                        }*/
                     }
                     if(characteristics.get(i).getUuid().toString().equals("0000fff2-0000-1000-8000-00805f9b34fb"))
                     {
@@ -793,6 +942,7 @@ public class MainActivity extends AppCompatActivity {
             scanner.startScan(mScanCallback);
             timerHandler.postDelayed(scanTimeout, 10000);
         }
+        setSensorStatus("Searching");
     }
     int calibrationCounter = 0;
     int flag = 0;
@@ -831,8 +981,46 @@ public class MainActivity extends AppCompatActivity {
             else{
                 flag = 0;
             }
-            //timerHandler.postDelayed(calibrationRepeat, 20);
         }
+    }
+    public void connectThigh(View v){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ULConnect.setVisibility(View.INVISIBLE);
+                LLConnect.setVisibility(View.INVISIBLE);
+                footConnect.setVisibility(View.INVISIBLE);
+                scanForPCM.setVisibility(View.VISIBLE);
+            }
+        });
+        upperLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+        awaitingResponse = false;
+    }
+    public void connectLowerLeg(View v){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ULConnect.setVisibility(View.INVISIBLE);
+                LLConnect.setVisibility(View.INVISIBLE);
+                footConnect.setVisibility(View.INVISIBLE);
+                scanForPCM.setVisibility(View.VISIBLE);
+            }
+        });
+        lowerLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+        awaitingResponse = false;
+    }
+    public void connectFoot(View v){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ULConnect.setVisibility(View.INVISIBLE);
+                LLConnect.setVisibility(View.INVISIBLE);
+                footConnect.setVisibility(View.INVISIBLE);
+                scanForPCM.setVisibility(View.VISIBLE);
+            }
+        });
+        footGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+        awaitingResponse = false;
     }
     Runnable calibrationRepeat = new Runnable() {
         @Override
