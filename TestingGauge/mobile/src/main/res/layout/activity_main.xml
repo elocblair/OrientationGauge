@@ -40,6 +40,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|left"
+        android:layout_marginBottom="5dp"
+        android:layout_marginLeft="5dp"
         android:backgroundTint="@android:color/holo_blue_light"
         android:onClick="stimClicked"
         android:src="@drawable/ic_flash_on_24dp"
@@ -49,13 +51,15 @@
     <Button
         android:id="@+id/scanButton"
         style="@style/Widget.AppCompat.Button.Colored"
-        android:layout_width="120dp"
-        android:layout_height="50dp"
+        android:layout_width="160dp"
+        android:layout_height="70dp"
         android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="10dp"
         android:elevation="5dp"
         android:onClick="scanAgain"
         android:text="scan"
         android:textAppearance="@style/TextAppearance.AppCompat"
+        android:textSize="15dp"
         android:visibility="invisible" />
 
     <include
@@ -80,8 +84,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingTop="28dp"
-        android:weightSum="1">
+        android:paddingTop="180dp"
+        android:weightSum="1"
+        android:id="@+id/linearLayout">
 
         <Button
             android:id="@+id/upperLegButton"
@@ -98,36 +103,51 @@
 
             <ProgressBar
                 android:id="@+id/progressBarTopLeft"
-                style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Horizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="25dp"
                 android:layout_weight="1"
                 android:indeterminate="false"
                 android:max="100"
+                android:paddingRight="5dp"
                 android:progress="0"
+                android:progressTint="#00ff00"
                 android:visibility="visible"
                 tools:visibility="visible" />
 
             <ProgressBar
                 android:id="@+id/progressBarTopRight"
-                style="?android:attr/progressBarStyleHorizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="25dp"
                 android:layout_weight="1"
                 android:max="100"
+                android:paddingRight="5dp"
                 android:progress="0"
+                android:progressTint="#00ff00"
                 android:visibility="visible"
                 tools:visibility="visible" />
+
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/topLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="upper leg angle "
+            android:textAlignment="center"
+            android:textColor="#ffffff"
+            android:textSize="15dp" />
 
         <TextView
             android:id="@+id/topAngle"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
+            android:layout_height="35dp"
             android:layout_weight="0.02"
             android:textAlignment="center"
-            android:textColor="@color/colorAccent"
-            android:textSize="20dp" />
+            android:textColor="#00ff00"
+            android:textSize="30dp"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/lowerLegButton"
@@ -144,38 +164,52 @@
 
             <ProgressBar
                 android:id="@+id/progressBarMidLeft"
-                style="?android:attr/progressBarStyleHorizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="25dp"
                 android:layout_weight="1"
 
                 android:max="100"
+                android:paddingRight="5dp"
                 android:progress="0"
+                android:progressTint="#00ff00"
                 android:visibility="visible"
                 tools:visibility="visible" />
 
             <ProgressBar
                 android:id="@+id/progressBarMidRight"
-                style="?android:attr/progressBarStyleHorizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="25dp"
                 android:layout_weight="1"
 
                 android:max="100"
+                android:paddingRight="5dp"
                 android:progress="0"
+                android:progressTint="#00ff00"
                 android:visibility="visible"
                 tools:visibility="visible" />
         </LinearLayout>
 
         <TextView
+            android:id="@+id/midLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="lower leg angle"
+            android:textAlignment="center"
+            android:textColor="#ffffff"
+            android:textSize="15dp" />
+
+        <TextView
             android:id="@+id/midAngle"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
+            android:layout_height="35dp"
             android:layout_weight="0.09"
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.AppCompat"
-            android:textColor="@color/colorAccent"
-            android:textSize="20dp" />
+            android:textColor="#00ff00"
+            android:textSize="30dp"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/footButton"
@@ -192,39 +226,125 @@
 
             <ProgressBar
                 android:id="@+id/progressBarBottomLeft"
-                style="?android:attr/progressBarStyleHorizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="wrap_content"
-
-                android:layout_height="wrap_content"
+                android:layout_height="25dp"
                 android:layout_weight="0.43"
                 android:max="100"
+                android:paddingRight="5dp"
                 android:progress="0"
+                android:progressTint="#00ff00"
                 android:visibility="visible"
                 tools:visibility="visible" />
 
             <ProgressBar
                 android:id="@+id/progressBarBottomRight"
-                style="?android:attr/progressBarStyleHorizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="wrap_content"
-
-                android:layout_height="wrap_content"
+                android:layout_height="25dp"
                 android:layout_weight="0.43"
                 android:max="100"
+                android:paddingRight="5dp"
                 android:progress="0"
+                android:progressTint="#00ff00"
                 android:visibility="visible"
                 tools:visibility="visible" />
         </LinearLayout>
 
         <TextView
+            android:id="@+id/bottomLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="foot angle"
+            android:textAlignment="center"
+            android:textColor="#ffffff"
+            android:textSize="15dp" />
+
+        <TextView
             android:id="@+id/bottomAngle"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
+            android:layout_height="35dp"
             android:layout_weight="0.09"
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.AppCompat"
-            android:textColor="@color/colorAccent"
-            android:textSize="20dp" />
+            android:textColor="#00ff00"
+            android:textSize="30dp"
+            android:textStyle="bold" />
 
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/imageView7"
+        android:layout_width="match_parent"
+        android:layout_height="102dp"
+        android:background="#000000"
+        app:srcCompat="@drawable/stimImage"
+        custom:srcCompat="@drawable/logo3" />
+
+    <ImageView
+        android:id="@+id/imageView2"
+        android:layout_width="match_parent"
+        android:layout_height="102dp"
+        custom:srcCompat="@drawable/RePair-logo" />
+
+    <SeekBar
+        android:id="@+id/seekBarMidRight"
+        android:layout_width="203dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="202dp"
+        android:layout_marginTop="355dp"
+        android:max="100"
+        android:progress="100"
+        android:thumb="@drawable/seek_arc_control_selector" />
+
+    <SeekBar
+        android:id="@+id/seekBarTopLeft"
+        android:layout_width="203dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="225dp"
+        android:layoutDirection="rtl"
+        android:max="100"
+        android:progress="100"
+        android:thumb="@drawable/seek_arc_control_selector" />
+
+    <SeekBar
+        android:id="@+id/seekBarMidLeft"
+        android:layout_width="203dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="355dp"
+        android:layoutDirection="rtl"
+        android:max="100"
+        android:progress="100"
+        android:thumb="@drawable/seek_arc_control_selector" />
+
+    <SeekBar
+        android:id="@+id/seekBarBottomLeft"
+        android:layout_width="203dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="491dp"
+        android:layoutDirection="rtl"
+        android:max="100"
+        android:progress="100"
+        android:thumb="@drawable/seek_arc_control_selector" />
+
+    <SeekBar
+        android:id="@+id/seekBarBottomRight"
+        android:layout_width="203dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="202dp"
+        android:layout_marginTop="491dp"
+        android:max="100"
+        android:progress="100"
+        android:thumb="@drawable/seek_arc_control_selector" />
+
+    <SeekBar
+        android:id="@+id/seekBarTopRight"
+        android:layout_width="203dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="202dp"
+        android:layout_marginTop="225dp"
+        android:max="100"
+        android:progress="100"
+        android:thumb="@drawable/seek_arc_control_selector" />
 
 </android.support.design.widget.CoordinatorLayout>
