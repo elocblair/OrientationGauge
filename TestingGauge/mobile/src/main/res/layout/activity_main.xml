@@ -55,10 +55,12 @@
         android:layout_height="70dp"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="10dp"
+        android:background="#A59D95"
         android:elevation="5dp"
         android:onClick="scanAgain"
         android:text="scan"
         android:textAppearance="@style/TextAppearance.AppCompat"
+        android:textColorLink="#A59D95"
         android:textSize="15dp"
         android:visibility="invisible" />
 
@@ -81,78 +83,118 @@
         app:layout_anchorGravity="bottom|right" />
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:paddingTop="180dp"
-        android:weightSum="1"
-        android:id="@+id/linearLayout">
+        android:weightSum="1">
 
-        <Button
-            android:id="@+id/upperLegButton"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="connectThigh"
-            android:text="Connect Thigh"
-            android:visibility="invisible" />
+            android:layout_height="131dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <ProgressBar
-                android:id="@+id/progressBarTopLeft"
-                style="@android:style/Widget.ProgressBar.Horizontal"
-                android:layout_width="wrap_content"
-                android:layout_height="25dp"
+            <Button
+                android:id="@+id/upperLegButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
                 android:layout_weight="1"
-                android:indeterminate="false"
-                android:max="100"
-                android:paddingRight="5dp"
-                android:progress="0"
-                android:progressTint="#00ff00"
-                android:visibility="visible"
-                tools:visibility="visible" />
+                android:gravity="top|center"
+                android:onClick="connectThigh"
+                android:text="Connect Thigh"
+                android:visibility="invisible" />
 
-            <ProgressBar
-                android:id="@+id/progressBarTopRight"
-                style="@android:style/Widget.ProgressBar.Horizontal"
-                android:layout_width="wrap_content"
-                android:layout_height="25dp"
+            <TextView
+                android:id="@+id/topAngle"
+                android:layout_width="match_parent"
+                android:layout_height="35dp"
+                android:layout_weight="1"
+                android:layout_below="@+id/topLabel"
+                android:textAlignment="center"
+                android:textColor="#69BE28"
+                android:textSize="30dp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/topLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="upper leg angle"
+                android:layout_below="@+id/seekBarTopLeft"
+                android:textAlignment="center"
+                android:textColor="#ffffff"
+                android:textSize="15dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="92dp"
+                android:layout_alignParentStart="true"
+                android:gravity="bottom"
+                android:orientation="horizontal"
+                android:layout_alignBottom="@+id/seekBarTopLeft">
+
+                <ProgressBar
+                    android:id="@+id/progressBarTopLeft"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="25dp"
+                    android:layout_weight="1"
+                    android:indeterminate="false"
+                    android:max="100"
+                    android:paddingRight="5dp"
+                    android:progress="0"
+                    android:progressTint="#69BE28"
+                    android:visibility="visible"
+                    tools:visibility="visible" />
+
+                <ProgressBar
+                    android:id="@+id/progressBarTopRight"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="25dp"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:paddingRight="5dp"
+                    android:progress="0"
+                    android:progressTint="#69BE28"
+                    android:visibility="visible"
+                    tools:visibility="visible" />
+
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarTopLeft"
+                android:layout_width="203dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/upperLegButton"
+                android:layout_weight="1"
+                android:layoutDirection="rtl"
+                android:max="100"
+                android:progress="100"
+                android:progressTint="#696969"
+                android:thumb="@drawable/seek_arc_control_selector" />
+
+            <SeekBar
+                android:id="@+id/seekBarTopRight"
+                android:layout_width="203dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/upperLegButton"
+                android:layout_marginLeft="202dp"
                 android:layout_weight="1"
                 android:max="100"
-                android:paddingRight="5dp"
-                android:progress="0"
-                android:progressTint="#00ff00"
-                android:visibility="visible"
-                tools:visibility="visible" />
+                android:progress="100"
+                android:progressTint="#696969"
+                android:thumb="@drawable/seek_arc_control_selector" />
 
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/topLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="upper leg angle "
-            android:textAlignment="center"
-            android:textColor="#ffffff"
-            android:textSize="15dp" />
-
-        <TextView
-            android:id="@+id/topAngle"
-            android:layout_width="match_parent"
-            android:layout_height="35dp"
-            android:layout_weight="0.02"
-            android:textAlignment="center"
-            android:textColor="#00ff00"
-            android:textSize="30dp"
-            android:textStyle="bold" />
+        </RelativeLayout>
 
         <Button
             android:id="@+id/lowerLegButton"
-            android:layout_width="match_parent"
+            android:layout_width="343dp"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
             android:onClick="connectLowerLeg"
             android:text="Connect Lower Leg"
             android:visibility="invisible" />
@@ -172,7 +214,7 @@
                 android:max="100"
                 android:paddingRight="5dp"
                 android:progress="0"
-                android:progressTint="#00ff00"
+                android:progressTint="#69BE28"
                 android:visibility="visible"
                 tools:visibility="visible" />
 
@@ -186,7 +228,7 @@
                 android:max="100"
                 android:paddingRight="5dp"
                 android:progress="0"
-                android:progressTint="#00ff00"
+                android:progressTint="#69BE28"
                 android:visibility="visible"
                 tools:visibility="visible" />
         </LinearLayout>
@@ -207,14 +249,15 @@
             android:layout_weight="0.09"
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.AppCompat"
-            android:textColor="#00ff00"
+            android:textColor="#69BE28"
             android:textSize="30dp"
             android:textStyle="bold" />
 
         <Button
             android:id="@+id/footButton"
-            android:layout_width="match_parent"
+            android:layout_width="343dp"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
             android:onClick="connectFoot"
             android:text="Connect Foot"
             android:visibility="invisible" />
@@ -233,7 +276,7 @@
                 android:max="100"
                 android:paddingRight="5dp"
                 android:progress="0"
-                android:progressTint="#00ff00"
+                android:progressTint="#69BE28"
                 android:visibility="visible"
                 tools:visibility="visible" />
 
@@ -246,7 +289,7 @@
                 android:max="100"
                 android:paddingRight="5dp"
                 android:progress="0"
-                android:progressTint="#00ff00"
+                android:progressTint="#69BE28"
                 android:visibility="visible"
                 tools:visibility="visible" />
         </LinearLayout>
@@ -267,25 +310,11 @@
             android:layout_weight="0.09"
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.AppCompat"
-            android:textColor="#00ff00"
+            android:textColor="#69BE28"
             android:textSize="30dp"
             android:textStyle="bold" />
 
     </LinearLayout>
-
-    <ImageView
-        android:id="@+id/imageView7"
-        android:layout_width="match_parent"
-        android:layout_height="102dp"
-        android:background="#000000"
-        app:srcCompat="@drawable/stimImage"
-        custom:srcCompat="@drawable/logo3" />
-
-    <ImageView
-        android:id="@+id/imageView2"
-        android:layout_width="match_parent"
-        android:layout_height="102dp"
-        custom:srcCompat="@drawable/RePair-logo" />
 
     <SeekBar
         android:id="@+id/seekBarMidRight"
@@ -295,16 +324,7 @@
         android:layout_marginTop="355dp"
         android:max="100"
         android:progress="100"
-        android:thumb="@drawable/seek_arc_control_selector" />
-
-    <SeekBar
-        android:id="@+id/seekBarTopLeft"
-        android:layout_width="203dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="225dp"
-        android:layoutDirection="rtl"
-        android:max="100"
-        android:progress="100"
+        android:progressTint="#696969"
         android:thumb="@drawable/seek_arc_control_selector" />
 
     <SeekBar
@@ -315,6 +335,7 @@
         android:layoutDirection="rtl"
         android:max="100"
         android:progress="100"
+        android:progressTint="#696969"
         android:thumb="@drawable/seek_arc_control_selector" />
 
     <SeekBar
@@ -325,6 +346,7 @@
         android:layoutDirection="rtl"
         android:max="100"
         android:progress="100"
+        android:progressTint="#696969"
         android:thumb="@drawable/seek_arc_control_selector" />
 
     <SeekBar
@@ -335,16 +357,19 @@
         android:layout_marginTop="491dp"
         android:max="100"
         android:progress="100"
+        android:progressTint="#696969"
         android:thumb="@drawable/seek_arc_control_selector" />
 
-    <SeekBar
-        android:id="@+id/seekBarTopRight"
-        android:layout_width="203dp"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="202dp"
-        android:layout_marginTop="225dp"
-        android:max="100"
-        android:progress="100"
-        android:thumb="@drawable/seek_arc_control_selector" />
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="104dp"
+        custom:srcCompat="@drawable/stimage" />
+
+    <ImageView
+        android:id="@+id/imageView2"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        app:srcCompat="@drawable/repairlogo" />
 
 </android.support.design.widget.CoordinatorLayout>

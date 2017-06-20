@@ -107,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
         bottomLabel = (TextView) findViewById(R.id.bottomLabel);
         topLabel = (TextView)findViewById(R.id.topLabel);
         midLabel = (TextView)findViewById(R.id.midLabel);
-
         stimButton = (FloatingActionButton) findViewById(R.id.stim_buton);
         scanForPCM = (Button) findViewById(R.id.scanButton);
         ULConnect = (Button) findViewById(R.id.upperLegButton);
@@ -325,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
             if (deviceName != null){
                 if (deviceName.equals("JohnCougarMellenc"))
                 {
-                    if(device.getRssi() >= -42){
+                    if(device.getRssi() >= -45){
                         if(isScanning){
                             scanner.stopScan(mScanCallback);
                         }
@@ -337,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     setSensorStatus("Found...");
-                                    mContainerView.setBackgroundColor(Color.parseColor("#0000FF"));
+                                    mContainerView.setBackgroundColor(Color.parseColor("#00A1DE"));
                                     timerHandler.postDelayed(connectedBackgroundColorReset, 500);
                                     if (upperLegGatt == null) {
                                         ULConnect.setVisibility(VISIBLE);
@@ -386,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (value > topRightSB.getProgress() | (value*-1) > topLeftSB.getProgress()){
 
-                    mContainerView.setBackgroundColor(Color.parseColor("#0000ff"));
+                    mContainerView.setBackgroundColor(Color.parseColor("#008542"));
                     //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
@@ -419,7 +418,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (value > midRightSB.getProgress() | (value*-1) > midLeftSB.getProgress()){
 
-                    mContainerView.setBackgroundColor(Color.parseColor("#0000ff"));
+                    mContainerView.setBackgroundColor(Color.parseColor("#008542"));
                     //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
@@ -451,7 +450,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (value > bottomRightSB.getProgress() | (value*-1) > bottomLeftSB.getProgress()){
 
-                    mContainerView.setBackgroundColor(Color.parseColor("#0000ff"));
+                    mContainerView.setBackgroundColor(Color.parseColor("#008542"));
                     //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
@@ -528,12 +527,10 @@ public class MainActivity extends AppCompatActivity {
                 LSB = temp[6] & 0x000000FF;
                 val = MSB|LSB;
                  linX = -1.0f*val*0.001f;
-
                 MSB = temp[9] <<8;
                 LSB = temp[8] & 0x000000FF;
                 val = MSB|LSB;
                  linY = -1.0f*val*0.001f;
-
                 MSB = temp[11] << 8;
                 LSB = temp[10] & 0x000000FF;
                 val = MSB|LSB;
@@ -669,7 +666,6 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
                     //connectedToSensor = false;
                     //rescan = false;
                     runOnUiThread(new Runnable() {
@@ -682,7 +678,6 @@ public class MainActivity extends AppCompatActivity {
 
                         }
                     });
-
                     /*if(!isScanning){
                         isScanning = true;
                         scanner.startScan(mScanCallback);
@@ -694,7 +689,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == lowerLegGatt){
-
                     //connectedToSensor = false;
                     //rescan = false;
                     runOnUiThread(new Runnable() {
@@ -706,7 +700,6 @@ public class MainActivity extends AppCompatActivity {
                             midLabel.setTextColor(Color.parseColor("#ffffff"));
                         }
                     });
-
                     /*if(!isScanning){
                         isScanning = true;
                         scanner.startScan(mScanCallback);
@@ -720,7 +713,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if(gatt == footGatt){
 
-
                     //connectedToSensor = false;
                     //rescan = false;
                     runOnUiThread(new Runnable() {
@@ -732,7 +724,6 @@ public class MainActivity extends AppCompatActivity {
                             bottomLabel.setTextColor(Color.parseColor("#ffffff"));
                         }
                     });
-
                     /*if(!isScanning){
                         isScanning = true;
                         scanner.startScan(mScanCallback);
@@ -770,9 +761,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             topAngle.setVisibility(VISIBLE);
-                            topLabel.setTextColor(Color.parseColor("#00ff00"));                        }
-
-
+                            topLabel.setTextColor(Color.parseColor("#69BE28"));                        }
                     });
                     //timerHandler.postDelayed(connectedBackgroundColorReset,3000);
                 }
@@ -786,11 +775,9 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             midAngle.setVisibility(VISIBLE);
-                            midLabel.setTextColor(Color.parseColor("#00ff00"));
-
+                            midLabel.setTextColor(Color.parseColor("#69BE28"));
                         }
                     });
-
                 }
                 else if(gatt == footGatt) {
                     connectedToSensor = true;
@@ -802,11 +789,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             bottomAngle.setVisibility(VISIBLE);
-                            bottomLabel.setTextColor(Color.parseColor("#00ff00"));                        }
-
-
+                            bottomLabel.setTextColor(Color.parseColor("#69BE28"));                        }
                     });
-
                 }
                 /*else if(gatt == fireflyGatt)
                 {
@@ -1125,3 +1109,4 @@ public class MainActivity extends AppCompatActivity {
     };
 
 }
+
