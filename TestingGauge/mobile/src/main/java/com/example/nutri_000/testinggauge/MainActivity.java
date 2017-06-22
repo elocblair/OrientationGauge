@@ -6,6 +6,7 @@ import android.app.ListFragment;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -23,6 +24,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.os.Vibrator;
@@ -95,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView bottomLabel;
     private TextView topLabel;
     private TextView midLabel;
+    private RelativeLayout hipLayout, kneeLayout, ankleLayout;
+    private FloatingActionButton kneeButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         MainActivity.context = getApplicationContext();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
-        context = (Context) this;
+        context = this;
         bottomLabel = (TextView) findViewById(R.id.bottomLabel);
         topLabel = (TextView)findViewById(R.id.topLabel);
         midLabel = (TextView)findViewById(R.id.midLabel);
@@ -112,8 +116,8 @@ public class MainActivity extends AppCompatActivity {
         ULConnect = (Button) findViewById(R.id.upperLegButton);
         LLConnect = (Button) findViewById(R.id.lowerLegButton);
         footConnect = (Button) findViewById(R.id.footButton);
-        //fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
         sensorStatus = (TextView) findViewById(R.id.SensorStatus);
+        fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
         topLeftPB = (ProgressBar)findViewById(R.id.progressBarTopLeft);
         topLeftPB.setRotation(180);
         topRightPB = (ProgressBar)findViewById(R.id.progressBarTopRight);
@@ -127,25 +131,28 @@ public class MainActivity extends AppCompatActivity {
         midAngle = (TextView) findViewById(R.id.midAngle);
         bottomAngle = (TextView) findViewById(R.id.bottomAngle);
         topLeftSB = (SeekBar) findViewById(R.id.seekBarTopLeft);
-        //topLeftSB.setRotation(180);
         topRightSB = (SeekBar)findViewById(R.id.seekBarTopRight);
         midLeftSB = (SeekBar)findViewById(R.id.seekBarMidLeft);
-        //midLeftSB.setRotation(180);
         midRightSB = (SeekBar)findViewById(R.id.seekBarMidRight);
         bottomLeftSB = (SeekBar) findViewById(R.id.seekBarBottomLeft);
-        //bottomLeftSB.setRotation(180);
         bottomRightSB = (SeekBar) findViewById(R.id.seekBarBottomRight);
-
+        mContainerView = (CoordinatorLayout) findViewById(R.id.container);
+        mContainerView.setBackgroundColor(Color.parseColor("#333333"));
+        hipLayout = (RelativeLayout) findViewById(R.id.relativeHip);
+        kneeLayout = (RelativeLayout) findViewById(R.id.relativeKnee);
+        ankleLayout = (RelativeLayout) findViewById(R.id.relativeAnkle);
+        stimButton.bringToFront();
+        kneeButton = (FloatingActionButton) findViewById(R.id.kneeButton);
+        kneeButton.bringToFront();
 
         //bluetooth section
         serviceUUIDs = new UUID[1];
         serviceUUIDs[0] = UUID.fromString("0000AA80-0000-1000-8000-00805f9b34fb");
-        mContainerView = (CoordinatorLayout) findViewById(R.id.container);
-        mContainerView.setBackgroundColor(Color.parseColor("#333333"));
+
         adapter = BluetoothAdapter.getDefaultAdapter();
         scanner = adapter.getBluetoothLeScanner();
 
-        stimButton.bringToFront();
+
         if(!adapter.isEnabled())
         {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -272,14 +279,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
-
-    //le scan callback
+    //what
     private BluetoothDevice peripheral;
+    //hwat
     public static Context getAppContext(){
         return MainActivity.context;
     }
+    //
     public static byte [] startStim = {12, 1, 2, 3, 4, 60, 0, 0, 24, 83, 12, 13, (byte)0xc1};
     int mtu_flag = 0;
     int charfound = 0;
@@ -316,20 +322,19 @@ public class MainActivity extends AppCompatActivity {
 
         private void processResult(ScanResult device)
         {
-            Log.i(TAG, "New LE Device: " + device.getDevice().getName() + " @ " + device.getRssi());
-            Log.i(TAG, "Address " + device.getDevice().getAddress());
+            Log.i(TAG, "New LE Device: " + device.getDevice().getName() + " @ " + device.getRssi() + " Address " + device.getDevice().getAddress());
+            //Log.i(TAG, "Address " + device.getDevice().getAddress());
 
             String deviceName;
             deviceName = device.getDevice().getName();
             if (deviceName != null){
                 if (deviceName.equals("JohnCougarMellenc"))
                 {
-                    if(device.getRssi() >= -45){
-                        if(isScanning){
+                    if(device.getRssi() >= -70){
+                        /*if(isScanning){
                             scanner.stopScan(mScanCallback);
-                        }
+                        }*/
                         peripheral = device.getDevice();
-                        //sensorGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
                         if(!awaitingResponse) {
                             awaitingResponse = true;
                             runOnUiThread(new Runnable() {
@@ -350,15 +355,14 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
                         }
-                        //Log.d(TAG, "found device");
                     }
                 }
-                /*if(deviceName.equals("FireflyPCM")){
+                if(deviceName.equals("FireflyPCM")){
                     firefly = device.getDevice();
-                    if(rescan){
-                        fireflyGatt = firefly.connectGatt(getAppContext(),false,btleGattCallback);
+                    if(device.getRssi() >= -50) {
+                        fireflyGatt = firefly.connectGatt(getAppContext(), false, btleGattCallback);
                     }
-                }*/
+                }
             }
         }
     };
@@ -371,9 +375,6 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (value == 0) {
-                    //gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
-                }
                 if(value < 0) {
                     topLeftPB.setProgress(-1*value);
                     topRightPB.setProgress(0);
@@ -384,17 +385,25 @@ public class MainActivity extends AppCompatActivity {
                     topRightPB.setProgress(value);
                 }
                 if (value > topRightSB.getProgress() | (value*-1) > topLeftSB.getProgress()){
+                    if(currentlyStimming == false) {
+                        currentlyStimming = true;
+                        Log.v(TAG, "Start command");
+                        triggerFirefly(startStim);
+                        timerHandler.postDelayed(timerRunnable, 1000);
+                        timerHandler.postDelayed(stimDebounce,5000);
 
-                    mContainerView.setBackgroundColor(Color.parseColor("#008542"));
-                    //timerHandler.postDelayed(connectedBackgroundColorReset,250);
+                    }
+                    hipLayout.setBackgroundColor(Color.parseColor("#008542"));
 
                 }
+
                 if (value < topRightSB.getProgress() & (value*-1) < topLeftSB.getProgress()){
 
-                    mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                    //timerHandler.postDelayed(connectedBackgroundColorReset,250);
+                    hipLayout.setBackgroundColor(Color.parseColor("#333333"));
+                    //currentlyStimming = false;
 
                 }
+
                 topAngle.setText(Integer.toString(value));
             }
         });
@@ -417,14 +426,21 @@ public class MainActivity extends AppCompatActivity {
                     midRightPB.setProgress(value);
                 }
                 if (value > midRightSB.getProgress() | (value*-1) > midLeftSB.getProgress()){
+                    if(currentlyStimming == false) {
+                        currentlyStimming = true;
+                        Log.v(TAG, "Start command");
+                        triggerFirefly(startStim);
+                        timerHandler.postDelayed(timerRunnable, 1000);
+                        timerHandler.postDelayed(stimDebounce,5000);
 
-                    mContainerView.setBackgroundColor(Color.parseColor("#008542"));
+                    }
+                    kneeLayout.setBackgroundColor(Color.parseColor("#008542"));
                     //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
                 if (value < midRightSB.getProgress() & (value*-1) < midLeftSB.getProgress()){
-
-                    mContainerView.setBackgroundColor(Color.parseColor("#333333"));
+                    //currentlyStimming = false;
+                    kneeLayout.setBackgroundColor(Color.parseColor("#333333"));
                     //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
@@ -449,15 +465,19 @@ public class MainActivity extends AppCompatActivity {
                     bottomRightPB.setProgress(value);
                 }
                 if (value > bottomRightSB.getProgress() | (value*-1) > bottomLeftSB.getProgress()){
-
-                    mContainerView.setBackgroundColor(Color.parseColor("#008542"));
-                    //timerHandler.postDelayed(connectedBackgroundColorReset,250);
+                    if(currentlyStimming == false) {
+                        currentlyStimming = true;
+                        Log.v(TAG, "Start command");
+                        triggerFirefly(startStim);
+                        timerHandler.postDelayed(timerRunnable, 1000);
+                        timerHandler.postDelayed(stimDebounce,5000);
+                    }
+                    ankleLayout.setBackgroundColor(Color.parseColor("#008542"));
 
                 }
                 if (value < bottomRightSB.getProgress() & (value*-1) < bottomLeftSB.getProgress()){
-
-                    mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                    //timerHandler.postDelayed(connectedBackgroundColorReset,250);
+                    //currentlyStimming = false;
+                    ankleLayout.setBackgroundColor(Color.parseColor("#333333"));
 
                 }
                 bottomAngle.setText(Integer.toString(value));
@@ -483,8 +503,8 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     if (!bgFlag){
                         mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                       // gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
-                       // gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
+                        // gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
+                        // gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
                     }
                 }
             });
@@ -526,15 +546,15 @@ public class MainActivity extends AppCompatActivity {
                 MSB = temp[7] << 8;
                 LSB = temp[6] & 0x000000FF;
                 val = MSB|LSB;
-                 linX = -1.0f*val*0.001f;
+                linX = -1.0f*val*0.001f;
                 MSB = temp[9] <<8;
                 LSB = temp[8] & 0x000000FF;
                 val = MSB|LSB;
-                 linY = -1.0f*val*0.001f;
+                linY = -1.0f*val*0.001f;
                 MSB = temp[11] << 8;
                 LSB = temp[10] & 0x000000FF;
                 val = MSB|LSB;
-                 linZ = -1.0f*val*0.001f;
+                linZ = -1.0f*val*0.001f;
 
                /* MSB = temp[13] << 8;
                 LSB = temp[12] & 0x000000FF;
@@ -572,7 +592,7 @@ public class MainActivity extends AppCompatActivity {
                     else if(gravY < gravZ){
                         gaugeValue = (int)(-1.0f*(90 - gyroY));
                     }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                   }
+                }
                 if(flag == 2){
                     if(gyroX > 90){
                         gaugeValue = (int)(-1.0f*(gyroX - 90));
@@ -630,7 +650,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 //if(displayDataCounter == 1) {
-                    //displayDataCounter = 0;
+                //displayDataCounter = 0;
                     /*if (gaugeValue > stimmingThreshold & gaugeValue < 225) {
                         setGaugeProperties(true);
                         if(currentlyStimming == false) {
@@ -639,20 +659,18 @@ public class MainActivity extends AppCompatActivity {
                             triggerFirefly(startStim);
                             timerHandler.postDelayed(timerRunnable, 1000);
                         }
-
                     } else {
                         setGaugeProperties(false);
-
                     }*/
-                    if(gatt == upperLegGatt) {
-                        setGaugeValue(gaugeValue);
-                    }
-                    if(gatt == lowerLegGatt){
-                        setGaugeValueLL(gaugeValue);
-                    }
-                    if(gatt == footGatt){
-                        setGaugeValueFoot(gaugeValue);
-                    }
+                if(gatt == upperLegGatt) {
+                    setGaugeValue(gaugeValue);
+                }
+                if(gatt == lowerLegGatt){
+                    setGaugeValueLL(gaugeValue);
+                }
+                if(gatt == footGatt){
+                    setGaugeValueFoot(gaugeValue);
+                }
 
                 //}
             }
@@ -684,8 +702,9 @@ public class MainActivity extends AppCompatActivity {
                         timerHandler.postDelayed(scanTimeout, 10000);
                     }*/
                     setSensorStatus("Disconnected");
-                    upperLegGatt = null;
+                    //
                     upperLegGatt.close();
+                    upperLegGatt = null;
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == lowerLegGatt){
@@ -707,8 +726,9 @@ public class MainActivity extends AppCompatActivity {
                     }*/
 
                     setSensorStatus("Disconnected");
-                    lowerLegGatt = null;
+                    //
                     lowerLegGatt.close();
+                    lowerLegGatt = null;
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == footGatt){
@@ -732,8 +752,9 @@ public class MainActivity extends AppCompatActivity {
 
 
                     setSensorStatus("Disconnected");
-                    footGatt = null;
+                    //
                     footGatt.close();
+                    footGatt = null;
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == fireflyGatt){
@@ -792,12 +813,12 @@ public class MainActivity extends AppCompatActivity {
                             bottomLabel.setTextColor(Color.parseColor("#69BE28"));                        }
                     });
                 }
-                /*else if(gatt == fireflyGatt)
+                else if(gatt == fireflyGatt)
                 {
                     fireflyGatt.discoverServices();
                     setFireflyStatus("Connecting...");
                     fireflyGatt.requestMtu(76);
-                }*/
+                }
             }
             else if(newState == 3)
             {
@@ -816,11 +837,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt,
                                           BluetoothGattCharacteristic characteristic, int status) {
-                if(gatt == fireflyGatt){
-                    if(characteristic == FIREFLY_CHARACTERISTIC2){
-                        Log.v(TAG, "write status " + status);
-                    }
+            if(gatt == fireflyGatt){
+                if(characteristic == FIREFLY_CHARACTERISTIC2){
+                    Log.v(TAG, "write status " + status);
                 }
+            }
         }
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic,int status) {
@@ -935,7 +956,7 @@ public class MainActivity extends AppCompatActivity {
     //fIREfLY STATUS TEXT
     public void setFireflyStatus(String message)
     {
-        final String msg = fireflyColor +" Firefly " + message;
+        final String msg = "Firefly " + message;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -959,7 +980,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             Log.v(TAG, "Stop command");
-            currentlyStimming = false;
+            //currentlyStimming = false;
             triggerFirefly(stopStim);
 
         }
@@ -989,6 +1010,12 @@ public class MainActivity extends AppCompatActivity {
             Log.v(TAG, "check");
 
             connectionCheckHandler.postDelayed(checkConnectedStatus, 1000);
+        }
+    };
+    Runnable stimDebounce = new Runnable(){
+        @Override
+        public void run(){
+            currentlyStimming = false;
         }
     };
     Runnable scanTimeout = new Runnable() {
@@ -1109,4 +1136,3 @@ public class MainActivity extends AppCompatActivity {
     };
 
 }
-
