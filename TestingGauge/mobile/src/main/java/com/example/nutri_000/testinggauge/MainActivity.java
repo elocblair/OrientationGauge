@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -23,6 +24,7 @@ import android.os.Bundle;
 
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -42,6 +44,7 @@ import android.util.Log;
 
 import static android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
 import static android.view.View.VISIBLE;
+import static java.lang.Math.abs;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -75,7 +78,8 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothDevice firefly = null;
     private TextView fireflyStatus;
     private FloatingActionButton stimButton;
-    private Button scanForPCM,ULConnect, LLConnect,footConnect;
+    private Button scanForPCM;
+    private ImageButton ULConnect, LLConnect,footConnect;
     private String fireflyColor = "";
 
 
@@ -85,39 +89,31 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     private BluetoothDevice MPU9250 = null;
     private TextView sensorStatus;
-    private int stimmingThreshold = 30;
+
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private boolean isScanning = false;
-    private boolean rescan = false;
     private ProgressBar topLeftPB, topRightPB, midLeftPB,midRightPB,bottomLeftPB,bottomRightPB;
     private SeekBar topLeftSB, topRightSB, midLeftSB, midRightSB, bottomLeftSB, bottomRightSB;
-    private TextView topAngle;
-    private TextView midAngle;
-    private TextView bottomAngle;
-    private TextView bottomLabel;
-    private TextView topLabel;
-    private TextView midLabel;
+    private TextView topAngle, topAngleL, midAngleL,bottomAngleL, midAngle, bottomAngle;
+
     private RelativeLayout hipLayout, kneeLayout, ankleLayout;
-    private FloatingActionButton kneeButton;
+    boolean searchHip, searchKnee, searchAnkle = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // all UI components for main activity
         MainActivity.context = getApplicationContext();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
         context = this;
-        bottomLabel = (TextView) findViewById(R.id.bottomLabel);
-        topLabel = (TextView)findViewById(R.id.topLabel);
-        midLabel = (TextView)findViewById(R.id.midLabel);
         stimButton = (FloatingActionButton) findViewById(R.id.stim_buton);
         scanForPCM = (Button) findViewById(R.id.scanButton);
-        ULConnect = (Button) findViewById(R.id.upperLegButton);
-        LLConnect = (Button) findViewById(R.id.lowerLegButton);
-        footConnect = (Button) findViewById(R.id.footButton);
+        ULConnect = (ImageButton) findViewById(R.id.upperLegButton);
+        LLConnect = (ImageButton) findViewById(R.id.lowerLegButton);
+        footConnect = (ImageButton) findViewById(R.id.footButton);
         sensorStatus = (TextView) findViewById(R.id.SensorStatus);
-        fireflyStatus = (TextView) findViewById(R.id.FireflyStatus);
         topLeftPB = (ProgressBar)findViewById(R.id.progressBarTopLeft);
         topLeftPB.setRotation(180);
         topRightPB = (ProgressBar)findViewById(R.id.progressBarTopRight);
@@ -130,6 +126,10 @@ public class MainActivity extends AppCompatActivity {
         topAngle = (TextView) findViewById(R.id.topAngle);
         midAngle = (TextView) findViewById(R.id.midAngle);
         bottomAngle = (TextView) findViewById(R.id.bottomAngle);
+        topAngleL = (TextView) findViewById(R.id.topAngleL);
+        midAngleL = (TextView) findViewById(R.id.midAngleL);
+        bottomAngleL = (TextView) findViewById(R.id.bottomAngleL);
+
         topLeftSB = (SeekBar) findViewById(R.id.seekBarTopLeft);
         topRightSB = (SeekBar)findViewById(R.id.seekBarTopRight);
         midLeftSB = (SeekBar)findViewById(R.id.seekBarMidLeft);
@@ -142,10 +142,7 @@ public class MainActivity extends AppCompatActivity {
         kneeLayout = (RelativeLayout) findViewById(R.id.relativeKnee);
         ankleLayout = (RelativeLayout) findViewById(R.id.relativeAnkle);
         stimButton.bringToFront();
-        kneeButton = (FloatingActionButton) findViewById(R.id.kneeButton);
-        kneeButton.bringToFront();
 
-        //bluetooth section
         serviceUUIDs = new UUID[1];
         serviceUUIDs[0] = UUID.fromString("0000AA80-0000-1000-8000-00805f9b34fb");
 
@@ -162,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         if(adapter.isEnabled())
         {
             Log.v("BLUETOOTH ENABLED", "TRUE");
-            setSensorStatus("Searching...");
+            //setSensorStatus("Searching...");
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
         } else {
             Log.v("BLUETOOTH ENABLED", "FALSE");
@@ -340,10 +337,22 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    setSensorStatus("Found...");
-                                    mContainerView.setBackgroundColor(Color.parseColor("#00A1DE"));
-                                    timerHandler.postDelayed(connectedBackgroundColorReset, 500);
-                                    if (upperLegGatt == null) {
+                                    //setSensorStatus("Found...");
+                                    //mContainerView.setBackgroundColor(Color.parseColor("#00A1DE"));
+                                    //timerHandler.postDelayed(connectedBackgroundColorReset, 500);
+                                    if(searchHip){
+                                        upperLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                                        ULConnect.setBackgroundResource(R.drawable.hipgreen);
+                                    }
+                                    else if(searchKnee){
+                                        lowerLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                                        LLConnect.setBackgroundResource(R.drawable.kneegreen);
+                                    }
+                                    else if(searchAnkle){
+                                        footGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                                        footConnect.setBackgroundResource(R.drawable.anklegreen);
+                                    }
+                                    /*if (upperLegGatt == null) {
                                         ULConnect.setVisibility(VISIBLE);
                                     }
                                     if (lowerLegGatt == null) {
@@ -351,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                     if (footGatt == null) {
                                         footConnect.setVisibility(VISIBLE);
-                                    }
+                                    }*/
                                 }
                             });
                         }
@@ -399,12 +408,17 @@ public class MainActivity extends AppCompatActivity {
 
                 if (value < topRightSB.getProgress() & (value*-1) < topLeftSB.getProgress()){
 
-                    hipLayout.setBackgroundColor(Color.parseColor("#333333"));
-                    //currentlyStimming = false;
+                    hipLayout.setBackgroundColor(Color.parseColor("#404040"));
 
                 }
-
-                topAngle.setText(Integer.toString(value));
+                if(value >= 0 ){
+                    topAngle.setText(Integer.toString(value));
+                    topAngleL.setText("0");
+                }
+                if(value <= 0) {
+                    topAngleL.setText(Integer.toString(-1*value));
+                    topAngle.setText("0");
+                }
             }
         });
 
@@ -414,7 +428,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (value == 0) {
-                    //gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
                 }
                 if(value < 0) {
                     midLeftPB.setProgress(-1*value);
@@ -435,16 +448,20 @@ public class MainActivity extends AppCompatActivity {
 
                     }
                     kneeLayout.setBackgroundColor(Color.parseColor("#008542"));
-                    //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
                 if (value < midRightSB.getProgress() & (value*-1) < midLeftSB.getProgress()){
-                    //currentlyStimming = false;
                     kneeLayout.setBackgroundColor(Color.parseColor("#333333"));
-                    //timerHandler.postDelayed(connectedBackgroundColorReset,250);
 
                 }
-                midAngle.setText(Integer.toString(value));
+                if(value >= 0 ){
+                    midAngle.setText(Integer.toString(value));
+                    midAngleL.setText("0");
+                }
+                if(value <= 0) {
+                    midAngleL.setText(Integer.toString(-1*value));
+                    midAngle.setText("0");
+                }
             }
         });
     }
@@ -453,7 +470,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (value == 0) {
-                    //gauge.setFinishedStrokeColor(Color.parseColor("#00000000"));
                 }
                 if(value < 0) {
                     bottomLeftPB.setProgress(-1*value);
@@ -473,46 +489,30 @@ public class MainActivity extends AppCompatActivity {
                         timerHandler.postDelayed(stimDebounce,5000);
                     }
                     ankleLayout.setBackgroundColor(Color.parseColor("#008542"));
-
                 }
                 if (value < bottomRightSB.getProgress() & (value*-1) < bottomLeftSB.getProgress()){
-                    //currentlyStimming = false;
-                    ankleLayout.setBackgroundColor(Color.parseColor("#333333"));
+                    ankleLayout.setBackgroundColor(Color.parseColor("#404040"));
 
                 }
-                bottomAngle.setText(Integer.toString(value));
+                if(value >= 0 ){
+                    bottomAngle.setText(Integer.toString(value));
+                    bottomAngleL.setText("0");
+                }
+                if(value <= 0) {
+                    bottomAngleL.setText(Integer.toString(-1*value));
+                    bottomAngle.setText("0");
+                }
+                //bottomAngle.setText(Integer.toString(value));
             }
         });
-    }
-    public void setGaugeProperties(boolean stimming)
-    {
-        if(stimming == true) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    //mContainerView.setBackgroundColor(Color.parseColor("#009900"));
-
-
-                    //gauge.setFinishedStrokeColor(Color.parseColor("#ffffff"));
-                    //gauge.setUnfinishedStrokeColor(Color.parseColor("#007700"));
-                }
-            });
-        } else {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (!bgFlag){
-                        mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                        // gauge.setFinishedStrokeColor(Color.parseColor("#00ff00"));
-                        // gauge.setUnfinishedStrokeColor(Color.parseColor("#222222"));
-                    }
-                }
-            });
-        }
     }
 
 
     float gravX, gravY, gravZ,linX,linY, linZ;
+    float averageHip, averageKnee, averageAnkle = 0;
+    int hipCalibrateCounter, kneeCalibrateCounter, ankleCalibrateCounter = 0;
+
+
 
     //GATT CALLBACK
     private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
@@ -569,65 +569,11 @@ public class MainActivity extends AppCompatActivity {
                 val = MSB|LSB;
                 gravZ = -1.0f*val*0.001f;*/
 
-                final String output = linX + "\t" + linY + "\t" + linZ;
+                final String output = gyroX + "\n";
                 //final String output = (int)gyroX + "\t" + (int)gyroY + "\t" + (int)gyroZ + "\t" + gravX + "\t" +gravY + "\t" + gravZ;
                 Log.v(gatt.toString() , output);
                 int gaugeValue = 0;
 
-
-                //LOWER LEG
-                if(flag ==1){
-                    if(gravY > gravZ){
-                        gaugeValue = (int)(-1.0f*(gyroY + 90));
-                    }
-                    else if(gravY < gravZ){
-                        gaugeValue = (int)((gyroY + 90));
-                    }
-                    //gaugeValue = (int)(gyroY +90);
-                }
-                if(flag == 3){
-                    if(gravY > gravZ){
-                        gaugeValue = (int)((90 - gyroY));
-                    }
-                    else if(gravY < gravZ){
-                        gaugeValue = (int)(-1.0f*(90 - gyroY));
-                    }
-                }
-                if(flag == 2){
-                    if(gyroX > 90){
-                        gaugeValue = (int)(-1.0f*(gyroX - 90));
-                    }
-                    if(gyroX <= 90){
-                        gaugeValue = (int)(-1.0f*(gyroX - 90));
-                    }
-                }
-                if(flag == 4){
-                    if (gyroX > -90){
-                        gaugeValue = (int)(-1.0f*(gyroX+90));
-                    }
-                    if(gyroX <= -90){
-                        gaugeValue = (int)(-1.0f*(gyroX+90));
-                    }
-                }
-
-
-
-                // Q1
-                /*if((gyroX > 0.0f) & (gyroX < 90.0f))
-                {
-                    gaugeValue = (int)gyroX;
-                }
-                //Q2
-                else if(gyroX >= 90.0f & gyroX < 180.0f)
-                {
-                    gaugeValue = (int)(gyroX - 90.0f);
-                }
-                //Q3 and Q4
-                else if(gyroX >= -180.0f & gyroX <= 0.0f)
-                {
-                    gaugeValue = 0;
-                }*/
-                // ONE Quadrant
                 if(((gyroX - 90.0f) > 0.0f) & gyroX < 190.0f) {
                     gaugeValue = (int) (gyroX - 90.0f);
                 }
@@ -649,30 +595,111 @@ public class MainActivity extends AppCompatActivity {
                     gaugeValue = 90;
                 }
 
-                //if(displayDataCounter == 1) {
-                //displayDataCounter = 0;
-                    /*if (gaugeValue > stimmingThreshold & gaugeValue < 225) {
-                        setGaugeProperties(true);
-                        if(currentlyStimming == false) {
-                            currentlyStimming = true;
-                            Log.v(TAG, "Start command");
-                            triggerFirefly(startStim);
-                            timerHandler.postDelayed(timerRunnable, 1000);
-                        }
-                    } else {
-                        setGaugeProperties(false);
-                    }*/
                 if(gatt == upperLegGatt) {
-                    setGaugeValue(gaugeValue);
+                    //setGaugeValue(gaugeValue);
+                    if(hipCalibrate & hipCalibrateCounter < 10){
+                        hipCalibrateCounter++;
+                        averageHip = averageHip + gyroX;
+                    }
+                    else if (hipCalibrate & hipCalibrateCounter == 10){
+                        averageHip = averageHip/10;
+                        hipCalibrateCounter++;
+                        /*if(averageHip < 0 ){
+                            averageHip = averageHip + 360;
+                        }*/
+                    }
+                    else if (hipCalibrate & hipCalibrateCounter > 10){
+                        //change gauge Value appropriately
+                        Log.v(TAG, "average found " + (int)averageHip + "\n");
+                        if((averageHip+90.0) < 180 & (averageHip - 90) > -180){
+                            setGaugeValue((int)(gyroX + (-1*averageHip)));
+                        }
+                        else if((averageHip + 90) > 180){
+                            if (gyroX < 0 ){
+                                setGaugeValue((int)((180 - averageHip) + (gyroX + 180)));
+                            }
+                            else if(gyroX > 0){
+                                setGaugeValue((int)(gyroX + (-1*averageHip)));
+                            }
+                        }
+                        else if((averageHip - 90) < -180){
+                            if(gyroX < 0 ){
+                                setGaugeValue((int)(gyroX + (-1*averageHip)));
+                            }
+                            if(gyroX > 0){
+                                setGaugeValue((int)((-180 - averageHip) + (gyroX - 180)));
+                            }
+                        }
+                    }
+
                 }
                 if(gatt == lowerLegGatt){
-                    setGaugeValueLL(gaugeValue);
+                    //setGaugeValueLL(gaugeValue);
+                    if(kneeCalibrate & kneeCalibrateCounter < 10){
+                        kneeCalibrateCounter++;
+                        averageKnee = averageKnee + gyroX;
+                    }
+                    else if (kneeCalibrate & kneeCalibrateCounter == 10){
+                        averageKnee = averageKnee/10;
+                        kneeCalibrateCounter++;
+                    }
+                    else if (kneeCalibrate & kneeCalibrateCounter > 10){
+                        //change gauge Value appropriately
+                        Log.v(TAG, "average found " + (int)averageKnee + "\n");
+                        if((averageKnee+90.0) < 180 & (averageKnee - 90) > -180){
+                            setGaugeValueLL((int)(gyroX + (-1*averageKnee)));
+                        }
+                        else if((averageKnee+90) > 180){
+                            if (gyroX < 0 ){
+                                setGaugeValueLL((int)((180 - averageKnee) + (gyroX + 180)));
+                            }
+                            else if(gyroX > 0){
+                                setGaugeValueLL((int)(gyroX + (-1*averageKnee)));
+                            }
+                        }
+                        else if((averageKnee-90) < -180){
+                            if(gyroX < 0 ){
+                                setGaugeValueLL((int)(gyroX + (-1*averageKnee)));
+                            }
+                            if(gyroX > 0){
+                                setGaugeValueLL((int)((-180 - averageKnee) + (gyroX - 180)));
+                            }
+                        }
+                    }
                 }
                 if(gatt == footGatt){
-                    setGaugeValueFoot(gaugeValue);
+                    //setGaugeValueFoot(gaugeValue);
+                    if(ankleCalibrate & ankleCalibrateCounter < 10){
+                        ankleCalibrateCounter++;
+                        averageAnkle = averageAnkle + gyroX;
+                    }
+                    else if (ankleCalibrate & ankleCalibrateCounter == 10){
+                        averageAnkle = averageAnkle/10;
+                        ankleCalibrateCounter++;
+                    }
+                    else if (ankleCalibrate & ankleCalibrateCounter > 10){
+                        //change gauge Value appropriately
+                        Log.v(TAG, "average found " + (int)averageAnkle + "\n");
+                        if((averageAnkle+90.0) < 180 & (averageAnkle - 90) > -180){
+                            setGaugeValueFoot((int)(gyroX + (-1*averageAnkle)));
+                        }
+                        else if((averageAnkle+90) > 180) {
+                            if (gyroX < 0) {
+                                setGaugeValueFoot((int) ((180 - averageAnkle) + (gyroX + 180)));
+                            } else if (gyroX > 0) {
+                                setGaugeValueFoot((int) (gyroX + (-1 * averageAnkle)));
+                            }
+                        }
+                        else if((gyroX-90) < -180){
+                            if(gyroX < 0 ){
+                                setGaugeValueFoot((int)(gyroX + (-1*averageAnkle)));
+                            }
+                            if(gyroX > 0){
+                                setGaugeValueFoot((int)((-180 - averageAnkle) + (gyroX - 180)));
+                            }
+                        }
+                    }
                 }
-
-                //}
             }
         }
 
@@ -681,9 +708,6 @@ public class MainActivity extends AppCompatActivity {
             if(newState == 0)
             {
                 if(gatt == upperLegGatt) {
-
-
-
                     //connectedToSensor = false;
                     //rescan = false;
                     runOnUiThread(new Runnable() {
@@ -692,8 +716,9 @@ public class MainActivity extends AppCompatActivity {
                             topLeftPB.setProgress(0);
                             topRightPB.setProgress(0);
                             topAngle.setVisibility(View.INVISIBLE);
-                            topLabel.setTextColor(Color.parseColor("#ffffff"));
-
+                            topAngleL.setVisibility(View.INVISIBLE);
+                            ULConnect.setBackgroundResource(R.drawable.hipwhite);
+                            hipLayout.setBackgroundColor(Color.parseColor("#404040"));
                         }
                     });
                     /*if(!isScanning){
@@ -716,7 +741,10 @@ public class MainActivity extends AppCompatActivity {
                             midLeftPB.setProgress(0);
                             midRightPB.setProgress(0);
                             midAngle.setVisibility(View.INVISIBLE);
-                            midLabel.setTextColor(Color.parseColor("#ffffff"));
+                            midAngleL.setVisibility(View.INVISIBLE);
+                            LLConnect.setBackgroundResource(R.drawable.kneewhite);
+                            kneeLayout.setBackgroundColor(Color.parseColor("#333333"));
+
                         }
                     });
                     /*if(!isScanning){
@@ -724,7 +752,6 @@ public class MainActivity extends AppCompatActivity {
                         scanner.startScan(mScanCallback);
                         timerHandler.postDelayed(scanTimeout, 10000);
                     }*/
-
                     setSensorStatus("Disconnected");
                     //
                     lowerLegGatt.close();
@@ -732,7 +759,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == footGatt){
-
                     //connectedToSensor = false;
                     //rescan = false;
                     runOnUiThread(new Runnable() {
@@ -741,7 +767,10 @@ public class MainActivity extends AppCompatActivity {
                             bottomLeftPB.setProgress(0);
                             bottomRightPB.setProgress(0);
                             bottomAngle.setVisibility(View.INVISIBLE);
-                            bottomLabel.setTextColor(Color.parseColor("#ffffff"));
+                            bottomAngleL.setVisibility(View.INVISIBLE);
+                            footConnect.setBackgroundResource(R.drawable.anklewhite);
+                            ankleLayout.setBackgroundColor(Color.parseColor("#404040"));
+
                         }
                     });
                     /*if(!isScanning){
@@ -749,8 +778,6 @@ public class MainActivity extends AppCompatActivity {
                         scanner.startScan(mScanCallback);
                         timerHandler.postDelayed(scanTimeout, 10000);
                     }*/
-
-
                     setSensorStatus("Disconnected");
                     //
                     footGatt.close();
@@ -782,7 +809,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             topAngle.setVisibility(VISIBLE);
-                            topLabel.setTextColor(Color.parseColor("#69BE28"));                        }
+                            topAngleL.setVisibility(VISIBLE);
+                        }
                     });
                     //timerHandler.postDelayed(connectedBackgroundColorReset,3000);
                 }
@@ -796,7 +824,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             midAngle.setVisibility(VISIBLE);
-                            midLabel.setTextColor(Color.parseColor("#69BE28"));
+                            midAngleL.setVisibility(VISIBLE);
                         }
                     });
                 }
@@ -810,7 +838,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             bottomAngle.setVisibility(VISIBLE);
-                            bottomLabel.setTextColor(Color.parseColor("#69BE28"));                        }
+                            bottomAngleL.setVisibility(VISIBLE);
+                        }
                     });
                 }
                 else if(gatt == fireflyGatt)
@@ -818,6 +847,7 @@ public class MainActivity extends AppCompatActivity {
                     fireflyGatt.discoverServices();
                     setFireflyStatus("Connecting...");
                     fireflyGatt.requestMtu(76);
+                    stimButton.setVisibility(VISIBLE);
                 }
             }
             else if(newState == 3)
@@ -966,7 +996,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //START AND STOP COMMANDS 4 FIREFLY
     public void triggerFirefly(byte[] onOff)
     {
         if(charfound == 1 & char4found == 0) {
@@ -980,38 +1009,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             Log.v(TAG, "Stop command");
-            //currentlyStimming = false;
             triggerFirefly(stopStim);
 
         }
     };
 
-
-    Runnable connectedBackgroundColorReset = new Runnable() {
-        @Override
-        public void run() {
-            bgFlag = false;
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-                }
-            });
-        }
-    };
-
-    //
-    Runnable checkConnectedStatus = new Runnable() {
-        @Override
-        public void run() {
-            if(MPU9250 == null || firefly == null) {
-
-            }
-            Log.v(TAG, "check");
-
-            connectionCheckHandler.postDelayed(checkConnectedStatus, 1000);
-        }
-    };
     Runnable stimDebounce = new Runnable(){
         @Override
         public void run(){
@@ -1026,35 +1028,14 @@ public class MainActivity extends AppCompatActivity {
                 //setSensorStatus("Connected");
                 isScanning = false;
             }
-            if(!connectedToSensor){
-                if(!isScanning){
-                    isScanning = true;
-                    scanner.startScan(mScanCallback);
-                    timerHandler.postDelayed(scanTimeout, 10000);
-                }
-            }
-            else if(connectedToSensor & !connectedToFirefly){
-                scanner.stopScan(mScanCallback);
-                isScanning = false;
-                Log.v(TAG, "scan stopped for good");
-                scanForPCM.setVisibility(VISIBLE);
 
-            }
         }
     };
-    public void scanAgain(View v){
-        if(!isScanning){
-            isScanning = true;
-            scanner.startScan(mScanCallback);
-            timerHandler.postDelayed(scanTimeout, 10000);
-        }
-        setSensorStatus("Searching");
-    }
+
     int calibrationCounter = 0;
     int flag = 0;
     float averageX, averageY = 0;
     public void gravityOrientation(View v){
-        //calibrationCounter++;
         averageX = 0;
         averageY = 0;
         flag = 0;
@@ -1089,44 +1070,82 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+    boolean hipCalibrate, kneeCalibrate, ankleCalibrate = false;
     public void connectThigh(View v){
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ULConnect.setVisibility(View.INVISIBLE);
-                LLConnect.setVisibility(View.INVISIBLE);
-                footConnect.setVisibility(View.INVISIBLE);
-                scanForPCM.setVisibility(View.VISIBLE);
-            }
-        });
-        upperLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
-        awaitingResponse = false;
+        if(upperLegGatt == null){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setSensorStatus("Searching");
+                    ULConnect.setBackgroundResource(R.drawable.hipyellow);
+                    //scanForPCM.setVisibility(View.VISIBLE);
+                }
+            });
+            searchHip = true;
+            searchAnkle = false;
+            searchKnee = false;
+            isScanning = true;
+            scanner.startScan(mScanCallback);
+            timerHandler.postDelayed(scanTimeout,10000);
+            awaitingResponse = false;
+        }
+        else{
+            //zero the sensor
+            hipCalibrate = true;
+            hipCalibrateCounter = 0;
+            averageHip = 0;
+
+        }
     }
     public void connectLowerLeg(View v){
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ULConnect.setVisibility(View.INVISIBLE);
-                LLConnect.setVisibility(View.INVISIBLE);
-                footConnect.setVisibility(View.INVISIBLE);
-                scanForPCM.setVisibility(View.VISIBLE);
-            }
-        });
-        lowerLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
-        awaitingResponse = false;
+        if(lowerLegGatt ==  null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+
+                    setSensorStatus("Searching");
+                    LLConnect.setBackgroundResource(R.drawable.kneeyellow);
+                    //scanForPCM.setVisibility(View.VISIBLE);
+                }
+            });
+            searchHip = false;
+            searchAnkle = false;
+            searchKnee = true;
+            isScanning = true;
+            scanner.startScan(mScanCallback);
+            timerHandler.postDelayed(scanTimeout,10000);
+
+            //lowerLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+            awaitingResponse = false;
+        }
+        else{
+            kneeCalibrate = true;
+            kneeCalibrateCounter = 0;
+            averageKnee = 0;
+        }
     }
     public void connectFoot(View v){
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ULConnect.setVisibility(View.INVISIBLE);
-                LLConnect.setVisibility(View.INVISIBLE);
-                footConnect.setVisibility(View.INVISIBLE);
-                scanForPCM.setVisibility(View.VISIBLE);
-            }
-        });
-        footGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
-        awaitingResponse = false;
+        if(footGatt == null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setSensorStatus("Searching");
+                    footConnect.setBackgroundResource(R.drawable.ankleyellow);
+                }
+            });
+            searchHip = false;
+            searchAnkle = true;
+            searchKnee = false;
+            isScanning = true;
+            scanner.startScan(mScanCallback);
+            timerHandler.postDelayed(scanTimeout,10000);
+            awaitingResponse = false;
+        }
+        else{
+            ankleCalibrate = true;
+            ankleCalibrateCounter = 0;
+            averageAnkle = 0;
+        }
     }
     Runnable calibrationRepeat = new Runnable() {
         @Override
