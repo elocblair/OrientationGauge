@@ -31,36 +31,25 @@
         android:gravity="center">
 
         <ImageView
-            android:id="@+id/imageView"
+            android:id="@+id/fireflyPic"
             android:layout_width="match_parent"
             android:layout_height="107dp"
-            android:layout_alignParentEnd="true"
+            android:layout_alignParentEnd="false"
             android:layout_alignParentTop="true"
             custom:srcCompat="@drawable/stimage" />
 
         <ImageView
-            android:id="@+id/imageView2"
+            android:id="@+id/repair"
             android:layout_width="match_parent"
             android:layout_height="80dp"
             app:srcCompat="@drawable/repairlogo" />
-
-        <ImageView
-            android:id="@+id/imageView3"
-            android:layout_width="240dp"
-            android:layout_height="wrap_content"
-            android:layout_alignBottom="@+id/linearLayout"
-            android:layout_alignParentBottom="false"
-            android:layout_alignParentEnd="false"
-            android:layout_below="@+id/linearlayout"
-            android:layout_centerHorizontal="true"
-            custom:srcCompat="@drawable/txbdc" />
 
         <TextView
             android:id="@+id/SensorStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
-            android:layout_below="@id/imageView"
+            android:layout_below="@id/fireflyPic"
             android:layout_marginBottom="5dp"
             android:layout_marginTop="5dp"
             android:layout_weight="1"
@@ -76,14 +65,23 @@
             android:layout_alignParentBottom="true"
             android:layout_below="@id/SensorStatus"
             android:orientation="vertical"
-            android:weightSum="1">
+            android:weightSum="3">
 
             <RelativeLayout
                 android:id="@+id/relativeHip"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#404040"
-                android:paddingBottom="10dp">
+                android:layout_weight="1"
+                android:background="#404040">
+
+                <ImageButton
+                    android:id="@+id/upperLegButton"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_centerHorizontal="true"
+                    android:background="@drawable/hipwhite"
+                    android:onClick="connectThigh" />
 
                 <TextView
                     android:id="@+id/topAngleL"
@@ -92,23 +90,12 @@
                     android:layout_centerInParent="true"
                     android:layout_toLeftOf="@+id/upperLegButton"
                     android:layout_weight="1"
+                    android:paddingBottom="25dp"
                     android:textAlignment="center"
                     android:textColor="#ffffff"
                     android:textSize="30dp"
                     android:textStyle="bold"
                     android:visibility="visible" />
-
-                <ImageButton
-                    android:id="@+id/upperLegButton"
-                    android:layout_width="84dp"
-                    android:layout_height="84dp"
-
-                    android:layout_alignParentTop="true"
-                    android:layout_centerHorizontal="true"
-                    android:layout_marginBottom="15dp"
-                    android:layout_marginTop="20dp"
-                    android:background="@drawable/hipwhite"
-                    android:onClick="connectThigh" />
 
                 <TextView
                     android:id="@+id/topAngle"
@@ -117,6 +104,7 @@
                     android:layout_centerInParent="true"
                     android:layout_toRightOf="@+id/upperLegButton"
                     android:layout_weight="1"
+                    android:paddingBottom="25dp"
                     android:textAlignment="center"
                     android:textColor="#ffffff"
                     android:textSize="30dp"
@@ -131,9 +119,10 @@
 
                     <SeekBar
                         android:id="@+id/seekBarTopLeft"
-                        android:layout_width="205dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_below="@+id/upperLegButton"
+                        android:layout_weight="1"
                         android:layoutDirection="rtl"
                         android:max="100"
                         android:progress="45"
@@ -199,7 +188,16 @@
                 android:id="@+id/relativeKnee"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingBottom="10dp">
+                android:layout_weight="1">
+
+                <ImageButton
+                    android:id="@+id/lowerLegButton"
+                    android:layout_width="82dp"
+                    android:layout_height="84dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_centerHorizontal="true"
+                    android:background="@drawable/kneewhite"
+                    android:onClick="connectLowerLeg" />
 
                 <TextView
                     android:id="@+id/midAngleL"
@@ -208,22 +206,12 @@
                     android:layout_centerInParent="true"
                     android:layout_toLeftOf="@+id/lowerLegButton"
                     android:layout_weight="0.09"
+                    android:paddingBottom="25dp"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:textColor="#ffffff"
                     android:textSize="30dp"
                     android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/lowerLegButton"
-                    android:layout_width="82dp"
-                    android:layout_height="84dp"
-                    android:layout_alignParentTop="true"
-                    android:layout_centerHorizontal="true"
-                    android:layout_marginBottom="15dp"
-                    android:layout_marginTop="20dp"
-                    android:background="@drawable/kneewhite"
-                    android:onClick="connectLowerLeg" />
 
                 <TextView
                     android:id="@+id/midAngle"
@@ -232,6 +220,7 @@
                     android:layout_centerInParent="true"
                     android:layout_toRightOf="@+id/lowerLegButton"
                     android:layout_weight="0.09"
+                    android:paddingBottom="25dp"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:textColor="#ffffff"
@@ -246,7 +235,7 @@
 
                     <SeekBar
                         android:id="@+id/seekBarMidLeft"
-                        android:layout_width="203dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_below="@id/lowerLegButton"
                         android:layout_weight="1"
@@ -258,9 +247,10 @@
 
                     <SeekBar
                         android:id="@+id/seekBarMidRight"
-                        android:layout_width="206dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_below="@id/lowerLegButton"
+                        android:layout_weight="1"
                         android:max="100"
                         android:progress="45"
                         android:progressTint="#000000"
@@ -311,8 +301,8 @@
                 android:id="@+id/relativeAnkle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#404040"
-                android:paddingBottom="7dp">
+                android:layout_weight="1"
+                android:background="#404040">
 
                 <ImageButton
                     android:id="@+id/footButton"
@@ -320,8 +310,6 @@
                     android:layout_height="84dp"
                     android:layout_alignParentTop="true"
                     android:layout_centerHorizontal="true"
-                    android:layout_marginBottom="15dp"
-                    android:layout_marginTop="20dp"
                     android:background="@drawable/anklewhite"
                     android:onClick="connectFoot" />
 
@@ -332,6 +320,7 @@
                     android:layout_centerInParent="true"
                     android:layout_toRightOf="@+id/footButton"
                     android:layout_weight="0.09"
+                    android:paddingBottom="25dp"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:textColor="#FFFFFF"
@@ -345,6 +334,7 @@
                     android:layout_centerInParent="true"
                     android:layout_toLeftOf="@+id/footButton"
                     android:layout_weight="0.09"
+                    android:paddingBottom="25dp"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:textColor="#FFFFFF"
@@ -359,7 +349,7 @@
 
                     <SeekBar
                         android:id="@+id/seekBarBottomLeft"
-                        android:layout_width="203dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_below="@+id/footButton"
                         android:layout_weight="1"
@@ -371,9 +361,10 @@
 
                     <SeekBar
                         android:id="@+id/seekBarBottomRight"
-                        android:layout_width="206dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_below="@+id/footButton"
+                        android:layout_weight="1"
                         android:max="100"
                         android:progress="45"
                         android:progressTint="#303030"
@@ -391,7 +382,7 @@
                         style="@android:style/Widget.Material.ProgressBar.Horizontal"
                         android:layout_width="wrap_content"
                         android:layout_height="33dp"
-                        android:layout_weight="0.43"
+                        android:layout_weight="1"
                         android:max="100"
                         android:paddingRight="5dp"
                         android:progress="0"
@@ -404,20 +395,32 @@
                         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
-                        android:layout_weight="0.43"
+                        android:layout_weight="1"
                         android:max="100"
                         android:paddingRight="5dp"
                         android:progress="0"
                         android:progressTint="#69BE28"
                         android:visibility="visible"
                         tools:visibility="visible" />
+
                 </LinearLayout>
 
             </RelativeLayout>
 
+            <ImageView
+                android:id="@+id/txbdc"
+                android:layout_width="match_parent"
+                android:layout_height="25dp"
+                android:layout_alignParentBottom="false"
+                android:layout_alignParentEnd="false"
+                android:layout_centerHorizontal="false"
+                android:layout_weight="1"
+                custom:srcCompat="@drawable/txbdc" />
 
         </LinearLayout>
     </RelativeLayout>
+
+
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/stim_buton"

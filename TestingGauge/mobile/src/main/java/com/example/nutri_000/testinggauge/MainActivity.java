@@ -690,7 +690,7 @@ public class MainActivity extends AppCompatActivity {
                                 setGaugeValueFoot((int) (gyroX + (-1 * averageAnkle)));
                             }
                         }
-                        else if((gyroX-90) < -180){
+                        else if((averageAnkle-90) < -180){
                             if(gyroX < 0 ){
                                 setGaugeValueFoot((int)(gyroX + (-1*averageAnkle)));
                             }
@@ -785,7 +785,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == fireflyGatt){
-                    setFireflyStatus("Disconnected");
+                    //setFireflyStatus("Disconnected");
                     if(!isScanning){
                         isScanning = true;
                         scanner.startScan(mScanCallback);
@@ -845,9 +845,14 @@ public class MainActivity extends AppCompatActivity {
                 else if(gatt == fireflyGatt)
                 {
                     fireflyGatt.discoverServices();
-                    setFireflyStatus("Connecting...");
+                    //setFireflyStatus("Connecting...");
                     fireflyGatt.requestMtu(76);
-                    stimButton.setVisibility(VISIBLE);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            stimButton.setVisibility(VISIBLE);
+                        }
+                    });
                 }
             }
             else if(newState == 3)
@@ -947,19 +952,19 @@ public class MainActivity extends AppCompatActivity {
                             scanner.stopScan(mScanCallback);
                             isScanning = false;
                         }
-                        setFireflyStatus("Connected");
+                        //setFireflyStatus("Connected");
                         Log.v("FIREFLY", "FOUND CHARACTERISTIC");
                         FIREFLY_CHARACTERISTIC2 = characteristics.get(i);
                         FIREFLY_CHARACTERISTIC2.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
                         connectedToFirefly = true;
                         charfound = 1;
-                        runOnUiThread(new Runnable() {
+                        /*runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 fireflyStatus.setTextColor(Color.parseColor("#ffffff"));
 
                             }
-                        });
+                        });*/
                         if(!connectedToSensor) {
 
                         }
@@ -984,17 +989,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //fIREfLY STATUS TEXT
-    public void setFireflyStatus(String message)
+    /*public void setFireflyStatus(String message)
     {
         final String msg = "Firefly " + message;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-
                 fireflyStatus.setText(msg);
             }
         });
-    }
+    }*/
 
     public void triggerFirefly(byte[] onOff)
     {
@@ -1025,10 +1029,33 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             if(isScanning){
                 scanner.stopScan(mScanCallback);
-                //setSensorStatus("Connected");
+                setSensorStatus("Select");
                 isScanning = false;
             }
-
+            if(searchHip){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ULConnect.setBackgroundResource(R.drawable.hipwhite);
+                    }
+                });
+            }
+            if(searchKnee){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        LLConnect.setBackgroundResource(R.drawable.kneewhite);
+                    }
+                });
+            }
+            if(searchAnkle){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ULConnect.setBackgroundResource(R.drawable.anklewhite);
+                    }
+                });
+            }
         }
     };
 
@@ -1094,6 +1121,8 @@ public class MainActivity extends AppCompatActivity {
             hipCalibrate = true;
             hipCalibrateCounter = 0;
             averageHip = 0;
+            topRightPB.setProgress(0);
+            topLeftPB.setProgress(0);
 
         }
     }
@@ -1122,6 +1151,8 @@ public class MainActivity extends AppCompatActivity {
             kneeCalibrate = true;
             kneeCalibrateCounter = 0;
             averageKnee = 0;
+            midLeftPB.setProgress(0);
+            midRightPB.setProgress(0);
         }
     }
     public void connectFoot(View v){
@@ -1145,6 +1176,8 @@ public class MainActivity extends AppCompatActivity {
             ankleCalibrate = true;
             ankleCalibrateCounter = 0;
             averageAnkle = 0;
+            bottomLeftPB.setProgress(0);
+            bottomRightPB.setProgress(0);
         }
     }
     Runnable calibrationRepeat = new Runnable() {
