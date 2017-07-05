@@ -17,7 +17,6 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.os.Vibrator;
 import android.content.Context;
 import android.content.Intent;
 import android.bluetooth.*;
@@ -38,28 +37,23 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Cole";
     protected UUID[] serviceUUIDs;
     private final static int REQUEST_ENABLE_BT = 1;
-    private boolean currentlyStimming = false;
 
-
-
-    //TIMERS
     Handler timerHandler = new Handler();
+    Status statusVariables = new Status();
+    FireflyCommands fireflyCommands = new FireflyCommands();
 
     private CoordinatorLayout mContainerView;
-    private Vibrator v;
     private BluetoothAdapter adapter;
     private static Context context;
 
     private BluetoothLeScanner scanner ;
 
     //BLE connections for the firefly
-    boolean connectedToFirefly = false;
     private BluetoothGatt fireflyGatt;
     private BluetoothGattCharacteristic FIREFLY_CHARACTERISTIC2;
     private BluetoothDevice firefly = null;
     private FloatingActionButton stimButton;
     private ImageButton ULConnect, LLConnect,footConnect;
-
 
     //ble connections for the sensor
 
@@ -68,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView sensorStatus;
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
-    private boolean isScanning = false;
     private ProgressBar topLeftPB, topRightPB, midLeftPB,midRightPB,bottomLeftPB,bottomRightPB;
     private SeekBar topLeftSB, topRightSB, midLeftSB, midRightSB, bottomLeftSB, bottomRightSB;
     private TextView topAngle, topAngleL, midAngleL,bottomAngleL, midAngle, bottomAngle;
@@ -140,21 +133,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.v("BLUETOOTH ENABLED", "FALSE");
         }
-        v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        if(v.hasVibrator())
-        {
-            Log.v("CAN VIBRATE", "YES");
-        } else
-        {
-            Log.v("CAN VIBRATE", "NO");
-        }
     }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(isScanning){
+        if(statusVariables.scanning){
             scanner.stopScan(mScanCallback);
-            isScanning = false;
+            statusVariables.scanning = false;
         }
 
         if(fireflyGatt != null) {
@@ -167,9 +153,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
 
         super.onStop();
-        if(isScanning){
+        if(statusVariables.scanning){
             scanner.stopScan(mScanCallback);
-            isScanning = false;
+            statusVariables.scanning = false;
         }
 
         if(fireflyGatt != null) {
@@ -182,9 +168,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause(){
         super.onPause();
-        if(isScanning){
+        if(statusVariables.scanning){
             scanner.stopScan(mScanCallback);
-            isScanning = false;
+            statusVariables.scanning = false;
         }
         if(fireflyGatt != null) {
             fireflyGatt.disconnect();
@@ -199,10 +185,11 @@ public class MainActivity extends AppCompatActivity {
     //stim button clicked
     public void stimClicked(View v)
     {
-        if(currentlyStimming == false) {
-            currentlyStimming = true;
-            triggerFirefly(fireflyCommands.start);
-            timerHandler.postDelayed(timerRunnable, 1000);
+        if(!statusVariables.stimming) {
+            statusVariables.stimming = true;
+            triggerFirefly(fireflyCommands.startStim);
+            timerHandler.postDelayed(fireflyStop, 1000);
+            timerHandler.postDelayed(fireflyDebounce,5000);
         }
     }
 
@@ -219,11 +206,9 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
                     Log.d(TAG, "coarse location permission granted");
-                    if(!isScanning){
-                        isScanning = true;
-                        scanner.startScan(mScanCallback);
-                        timerHandler.postDelayed(scanTimeout, 10000);
-                    }
+                    statusVariables.scanning = true;
+                    scanner.startScan(mScanCallback);
+                    timerHandler.postDelayed(scanTimeout, 2000);
                 }
                 else
                 {
@@ -249,15 +234,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //what
-    private BluetoothDevice peripheral;
+    //private BluetoothDevice peripheral;
     //hwat
     public static Context getAppContext(){
         return MainActivity.context;
     }
-    //
-    int mtu_flag = 0;
-    int charfound = 0;
-    int char4found = 0;
     boolean awaitingResponse = false;
 
 
@@ -296,6 +277,7 @@ public class MainActivity extends AppCompatActivity {
                 if (deviceName.equals("JohnCougarMellenc"))
                 {
                     if(device.getRssi() >= -70){
+                        final BluetoothDevice peripheral;
                         peripheral = device.getDevice();
                         if(!awaitingResponse) {
                             awaitingResponse = true;
@@ -321,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if(deviceName.equals("FireflyPCM")){
                     firefly = device.getDevice();
-                    if(device.getRssi() >= -50) {
+                    if(device.getRssi() >= -55) {
                         fireflyGatt = firefly.connectGatt(getAppContext(), false, btleGattCallback);
                     }
                 }
@@ -347,12 +329,12 @@ public class MainActivity extends AppCompatActivity {
                     topRightPB.setProgress(value);
                 }
                 if (value > topRightSB.getProgress() | (value*-1) > topLeftSB.getProgress()){
-                    if(currentlyStimming == false) {
-                        currentlyStimming = true;
+                    if(!statusVariables.stimming) {
+                        statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
-                        triggerFirefly(fireflyCommands.start);
-                        timerHandler.postDelayed(timerRunnable, 1000);
-                        timerHandler.postDelayed(stimDebounce,5000);
+                        triggerFirefly(fireflyCommands.startStim);
+                        timerHandler.postDelayed(fireflyStop, 1000);
+                        timerHandler.postDelayed(fireflyDebounce,5000);
 
                     }
                     hipLayout.setBackgroundColor(Color.parseColor("#008542"));
@@ -392,12 +374,12 @@ public class MainActivity extends AppCompatActivity {
                     midRightPB.setProgress(value);
                 }
                 if (value > midRightSB.getProgress() | (value*-1) > midLeftSB.getProgress()){
-                    if(currentlyStimming == false) {
-                        currentlyStimming = true;
+                    if(!statusVariables.stimming) {
+                        statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
-                        triggerFirefly(fireflyCommands.start);
-                        timerHandler.postDelayed(timerRunnable, 1000);
-                        timerHandler.postDelayed(stimDebounce,5000);
+                        triggerFirefly(fireflyCommands.startStim);
+                        timerHandler.postDelayed(fireflyStop, 1000);
+                        timerHandler.postDelayed(fireflyDebounce,5000);
 
                     }
                     kneeLayout.setBackgroundColor(Color.parseColor("#008542"));
@@ -434,12 +416,12 @@ public class MainActivity extends AppCompatActivity {
                     bottomRightPB.setProgress(value);
                 }
                 if (value > bottomRightSB.getProgress() | (value*-1) > bottomLeftSB.getProgress()){
-                    if(currentlyStimming == false) {
-                        currentlyStimming = true;
+                    if(!statusVariables.stimming) {
+                        statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
-                        triggerFirefly(fireflyCommands.start);
-                        timerHandler.postDelayed(timerRunnable, 1000);
-                        timerHandler.postDelayed(stimDebounce,5000);
+                        triggerFirefly(fireflyCommands.startStim);
+                        timerHandler.postDelayed(fireflyStop, 1000);
+                        timerHandler.postDelayed(fireflyDebounce,5000);
                     }
                     ankleLayout.setBackgroundColor(Color.parseColor("#008542"));
                 }
@@ -463,8 +445,6 @@ public class MainActivity extends AppCompatActivity {
     float gravX, gravY, gravZ,linX,linY, linZ;
     float averageHip, averageKnee, averageAnkle = 0;
     int hipCalibrateCounter, kneeCalibrateCounter, ankleCalibrateCounter = 0;
-
-
 
     //GATT CALLBACK
     private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
@@ -678,8 +658,8 @@ public class MainActivity extends AppCompatActivity {
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == fireflyGatt){
-                    if(!isScanning){
-                        isScanning = true;
+                    if(!statusVariables.scanning){
+                        statusVariables.scanning = true;
                         scanner.startScan(mScanCallback);
                         timerHandler.postDelayed(scanTimeout, 10000);
                     }
@@ -752,7 +732,7 @@ public class MainActivity extends AppCompatActivity {
             if(gatt == fireflyGatt){
                 if(mtu == 76){
                     Log.v(TAG, "mtu changed " + status);
-                    mtu_flag = 1;
+                    //mtu_flag = 1;
                 }
             }
         }
@@ -786,8 +766,10 @@ public class MainActivity extends AppCompatActivity {
                     if(characteristics.get(i).getUuid().toString().equals("0000beef-1212-efde-1523-785fef13d123"))
                     {
                         setSensorStatus("Connected");
-                        if(isScanning){
+                        if(statusVariables.scanning){
                             scanner.stopScan(mScanCallback);
+                            statusVariables.scanning = false;
+
                         }
                         Log.v("NRF Sensor", "FOUND CHARACTERISTIC");
                         NRF_CHARACTERISTIC = service.getCharacteristic(UUID.fromString("0000beef-1212-efde-1523-785fef13d123"));
@@ -806,15 +788,14 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if(characteristics.get(i).getUuid().toString().equals("0000fff2-0000-1000-8000-00805f9b34fb"))
                     {
-                        if(isScanning){
+                        if(statusVariables.scanning){
                             scanner.stopScan(mScanCallback);
-                            isScanning = false;
+                            statusVariables.scanning = false;
                         }
                         Log.v("FIREFLY", "FOUND CHARACTERISTIC");
                         FIREFLY_CHARACTERISTIC2 = characteristics.get(i);
                         FIREFLY_CHARACTERISTIC2.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-                        connectedToFirefly = true;
-                        charfound = 1;
+                        statusVariables.fireflyCharFound = true;
                     }
                 }
             }
@@ -836,35 +817,36 @@ public class MainActivity extends AppCompatActivity {
     }
     public void triggerFirefly(byte[] onOff)
     {
-        if(charfound == 1 & char4found == 0) {
-
+        if(statusVariables.fireflyCharFound){
             FIREFLY_CHARACTERISTIC2.setValue(onOff);
             boolean b = fireflyGatt.writeCharacteristic(FIREFLY_CHARACTERISTIC2);
             Log.i(TAG, "firefly write status = " + b);
         }
+
     }
-    Runnable timerRunnable = new Runnable() {
+    Runnable fireflyStop = new Runnable() {
         @Override
         public void run() {
+        if(statusVariables.fireflyCharFound){
             Log.v(TAG, "Stop command");
-            triggerFirefly(fireflyCommands.stop);
-
+            triggerFirefly(fireflyCommands.stopStim);
+        }
         }
     };
 
-    Runnable stimDebounce = new Runnable(){
+    Runnable fireflyDebounce = new Runnable(){
         @Override
         public void run(){
-            currentlyStimming = false;
+            statusVariables.stimming = false;
         }
     };
     Runnable scanTimeout = new Runnable() {
         @Override
         public void run() {
-            if(isScanning){
+            if(statusVariables.scanning){
                 scanner.stopScan(mScanCallback);
                 setSensorStatus("Select");
-                isScanning = false;
+                statusVariables.scanning = false;
                 if(searchHip & upperLegGatt == null){
                     runOnUiThread(new Runnable() {
                         @Override
@@ -908,7 +890,7 @@ public class MainActivity extends AppCompatActivity {
             searchHip = true;
             searchAnkle = false;
             searchKnee = false;
-            isScanning = true;
+            statusVariables.scanning = true;
             scanner.startScan(mScanCallback);
             timerHandler.postDelayed(scanTimeout,10000);
             awaitingResponse = false;
@@ -935,7 +917,7 @@ public class MainActivity extends AppCompatActivity {
             searchHip = false;
             searchAnkle = false;
             searchKnee = true;
-            isScanning = true;
+            statusVariables.scanning = true;
             scanner.startScan(mScanCallback);
             timerHandler.postDelayed(scanTimeout,10000);
             awaitingResponse = false;
@@ -960,7 +942,7 @@ public class MainActivity extends AppCompatActivity {
             searchHip = false;
             searchAnkle = true;
             searchKnee = false;
-            isScanning = true;
+            statusVariables.scanning = true;
             scanner.startScan(mScanCallback);
             timerHandler.postDelayed(scanTimeout,10000);
             awaitingResponse = false;
