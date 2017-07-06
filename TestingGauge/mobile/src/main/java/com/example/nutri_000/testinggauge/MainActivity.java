@@ -35,14 +35,16 @@ public class MainActivity extends AppCompatActivity {
 
 
     private static final String TAG = "Cole";
-    protected UUID[] serviceUUIDs;
+
     private final static int REQUEST_ENABLE_BT = 1;
 
     Handler timerHandler = new Handler();
     Status statusVariables = new Status();
     FireflyCommands fireflyCommands = new FireflyCommands();
+    SensorUI hipUI;
+    SensorUI kneeUI;
+    SensorUI ankleUI;
 
-    private CoordinatorLayout mContainerView;
     private BluetoothAdapter adapter;
     private static Context context;
 
@@ -53,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGattCharacteristic FIREFLY_CHARACTERISTIC2;
     private BluetoothDevice firefly = null;
     private FloatingActionButton stimButton;
-    private ImageButton ULConnect, LLConnect,footConnect;
+
 
     //ble connections for the sensor
 
@@ -62,11 +64,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView sensorStatus;
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
-    private ProgressBar topLeftPB, topRightPB, midLeftPB,midRightPB,bottomLeftPB,bottomRightPB;
-    private SeekBar topLeftSB, topRightSB, midLeftSB, midRightSB, bottomLeftSB, bottomRightSB;
-    private TextView topAngle, topAngleL, midAngleL,bottomAngleL, midAngle, bottomAngle;
-
-    private RelativeLayout hipLayout, kneeLayout, ankleLayout;
     boolean searchHip, searchKnee, searchAnkle = false;
 
     @Override
@@ -78,46 +75,24 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
         context = this;
+
+        hipUI = new SensorUI(R.id.upperLegButton, R.id.progressBarTopRight, R.id.progressBarTopLeft, R.id.seekBarTopRight, R.id.seekBarTopLeft,
+                R.id.topAngle, R.id.topAngleL,R.id.relativeHip, this );
+        hipUI.leftPB.setRotation(180);
+
+        kneeUI = new SensorUI(R.id.lowerLegButton, R.id.progressBarMidRight, R.id.progressBarMidLeft, R.id.seekBarMidRight,R.id.seekBarMidLeft,
+                R.id.midAngle, R.id.midAngleL, R.id.relativeKnee, this);
+        kneeUI.leftPB.setRotation(180);
+        ankleUI = new SensorUI(R.id.footButton,R.id.progressBarBottomRight,R.id.progressBarBottomLeft,R.id.seekBarBottomRight,R.id.seekBarBottomLeft,
+                R.id.bottomAngle,R.id.bottomAngleL, R.id.relativeAnkle, this);
+        ankleUI.leftPB.setRotation(180);
+
         stimButton = (FloatingActionButton) findViewById(R.id.stim_buton);
-        ULConnect = (ImageButton) findViewById(R.id.upperLegButton);
-        LLConnect = (ImageButton) findViewById(R.id.lowerLegButton);
-        footConnect = (ImageButton) findViewById(R.id.footButton);
         sensorStatus = (TextView) findViewById(R.id.SensorStatus);
-        topLeftPB = (ProgressBar)findViewById(R.id.progressBarTopLeft);
-        topLeftPB.setRotation(180);
-        topRightPB = (ProgressBar)findViewById(R.id.progressBarTopRight);
-        midLeftPB = (ProgressBar)findViewById(R.id.progressBarMidLeft);
-        midLeftPB.setRotation(180);
-        midRightPB = (ProgressBar)findViewById(R.id.progressBarMidRight);
-        bottomLeftPB = (ProgressBar)findViewById(R.id.progressBarBottomLeft);
-        bottomLeftPB.setRotation(180);
-        bottomRightPB = (ProgressBar)findViewById(R.id.progressBarBottomRight);
-        topAngle = (TextView) findViewById(R.id.topAngle);
-        midAngle = (TextView) findViewById(R.id.midAngle);
-        bottomAngle = (TextView) findViewById(R.id.bottomAngle);
-        topAngleL = (TextView) findViewById(R.id.topAngleL);
-        midAngleL = (TextView) findViewById(R.id.midAngleL);
-        bottomAngleL = (TextView) findViewById(R.id.bottomAngleL);
-
-        topLeftSB = (SeekBar) findViewById(R.id.seekBarTopLeft);
-        topRightSB = (SeekBar)findViewById(R.id.seekBarTopRight);
-        midLeftSB = (SeekBar)findViewById(R.id.seekBarMidLeft);
-        midRightSB = (SeekBar)findViewById(R.id.seekBarMidRight);
-        bottomLeftSB = (SeekBar) findViewById(R.id.seekBarBottomLeft);
-        bottomRightSB = (SeekBar) findViewById(R.id.seekBarBottomRight);
-        mContainerView = (CoordinatorLayout) findViewById(R.id.container);
-        mContainerView.setBackgroundColor(Color.parseColor("#333333"));
-        hipLayout = (RelativeLayout) findViewById(R.id.relativeHip);
-        kneeLayout = (RelativeLayout) findViewById(R.id.relativeKnee);
-        ankleLayout = (RelativeLayout) findViewById(R.id.relativeAnkle);
         stimButton.bringToFront();
-
-        serviceUUIDs = new UUID[1];
-        serviceUUIDs[0] = UUID.fromString("0000AA80-0000-1000-8000-00805f9b34fb");
 
         adapter = BluetoothAdapter.getDefaultAdapter();
         scanner = adapter.getBluetoothLeScanner();
-
 
         if(!adapter.isEnabled())
         {
@@ -133,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.v("BLUETOOTH ENABLED", "FALSE");
         }
+
     }
 
     @Override
@@ -286,15 +262,15 @@ public class MainActivity extends AppCompatActivity {
                                 public void run() {
                                     if(searchHip){
                                         upperLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
-                                        ULConnect.setBackgroundResource(R.drawable.hipgreen);
+                                        hipUI.connect.setBackgroundResource(R.drawable.hipgreen);
                                     }
                                     else if(searchKnee){
                                         lowerLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
-                                        LLConnect.setBackgroundResource(R.drawable.kneegreen);
+                                        kneeUI.connect.setBackgroundResource(R.drawable.kneegreen);
                                     }
                                     else if(searchAnkle){
                                         footGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
-                                        footConnect.setBackgroundResource(R.drawable.anklegreen);
+                                        ankleUI.connect.setBackgroundResource(R.drawable.anklegreen);
                                     }
                                 }
                             });
@@ -320,15 +296,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if(value < 0) {
-                    topLeftPB.setProgress(-1*value);
-                    topRightPB.setProgress(0);
+                    hipUI.leftPB.setProgress(-1*value);
+                    hipUI.rightPB.setProgress(0);
 
                 }
                 else if(value > 0){
-                    topLeftPB.setProgress(0);
-                    topRightPB.setProgress(value);
+                    hipUI.leftPB.setProgress(0);
+                    hipUI.rightPB.setProgress(value);
                 }
-                if (value > topRightSB.getProgress() | (value*-1) > topLeftSB.getProgress()){
+                if (value > hipUI.rightSB.getProgress() | (value*-1) > hipUI.leftSB.getProgress()){
                     if(!statusVariables.stimming) {
                         statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
@@ -337,22 +313,22 @@ public class MainActivity extends AppCompatActivity {
                         timerHandler.postDelayed(fireflyDebounce,5000);
 
                     }
-                    hipLayout.setBackgroundColor(Color.parseColor("#008542"));
+                    hipUI.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
 
                 }
 
-                if (value < topRightSB.getProgress() & (value*-1) < topLeftSB.getProgress()){
+                if (value < hipUI.rightSB.getProgress() & (value*-1) < hipUI.leftSB.getProgress()){
 
-                    hipLayout.setBackgroundColor(Color.parseColor("#404040"));
+                    hipUI.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
 
                 }
                 if(value >= 0 ){
-                    topAngle.setText(Integer.toString(value));
-                    topAngleL.setText("0");
+                    hipUI.rightTV.setText(Integer.toString(value));
+                    hipUI.leftTV.setText("0");
                 }
                 if(value <= 0) {
-                    topAngleL.setText(Integer.toString(-1*value));
-                    topAngle.setText("0");
+                    hipUI.leftTV.setText(Integer.toString(-1*value));
+                    hipUI.rightTV.setText("0");
                 }
             }
         });
@@ -365,15 +341,15 @@ public class MainActivity extends AppCompatActivity {
                 if (value == 0) {
                 }
                 if(value < 0) {
-                    midLeftPB.setProgress(-1*value);
-                    midRightPB.setProgress(0);
+                    kneeUI.leftPB.setProgress(-1*value);
+                    kneeUI.rightPB.setProgress(0);
 
                 }
                 else if(value > 0){
-                    midLeftPB.setProgress(0);
-                    midRightPB.setProgress(value);
+                    kneeUI.leftPB.setProgress(0);
+                    kneeUI.rightPB.setProgress(value);
                 }
-                if (value > midRightSB.getProgress() | (value*-1) > midLeftSB.getProgress()){
+                if (value > kneeUI.rightSB.getProgress() | (value*-1) > kneeUI.leftSB.getProgress()){
                     if(!statusVariables.stimming) {
                         statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
@@ -382,20 +358,20 @@ public class MainActivity extends AppCompatActivity {
                         timerHandler.postDelayed(fireflyDebounce,5000);
 
                     }
-                    kneeLayout.setBackgroundColor(Color.parseColor("#008542"));
+                    kneeUI.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
 
                 }
-                if (value < midRightSB.getProgress() & (value*-1) < midLeftSB.getProgress()){
-                    kneeLayout.setBackgroundColor(Color.parseColor("#333333"));
+                if (value < kneeUI.rightSB.getProgress() & (value*-1) < kneeUI.leftSB.getProgress()){
+                    kneeUI.relativeLayout.setBackgroundColor(Color.parseColor("#333333"));
 
                 }
                 if(value >= 0 ){
-                    midAngle.setText(Integer.toString(value));
-                    midAngleL.setText("0");
+                    kneeUI.rightTV.setText(Integer.toString(value));
+                    kneeUI.leftTV.setText("0");
                 }
                 if(value <= 0) {
-                    midAngleL.setText(Integer.toString(-1*value));
-                    midAngle.setText("0");
+                    kneeUI.leftTV.setText(Integer.toString(-1*value));
+                    kneeUI.rightTV.setText("0");
                 }
             }
         });
@@ -407,15 +383,15 @@ public class MainActivity extends AppCompatActivity {
                 if (value == 0) {
                 }
                 if(value < 0) {
-                    bottomLeftPB.setProgress(-1*value);
-                    bottomRightPB.setProgress(0);
+                    ankleUI.leftPB.setProgress(-1*value);
+                    ankleUI.rightPB.setProgress(0);
 
                 }
                 else if(value > 0){
-                    bottomLeftPB.setProgress(0);
-                    bottomRightPB.setProgress(value);
+                    ankleUI.leftPB.setProgress(0);
+                    ankleUI.rightPB.setProgress(value);
                 }
-                if (value > bottomRightSB.getProgress() | (value*-1) > bottomLeftSB.getProgress()){
+                if (value > ankleUI.rightSB.getProgress() | (value*-1) > ankleUI.leftSB.getProgress()){
                     if(!statusVariables.stimming) {
                         statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
@@ -423,19 +399,19 @@ public class MainActivity extends AppCompatActivity {
                         timerHandler.postDelayed(fireflyStop, 1000);
                         timerHandler.postDelayed(fireflyDebounce,5000);
                     }
-                    ankleLayout.setBackgroundColor(Color.parseColor("#008542"));
+                    ankleUI.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
                 }
-                if (value < bottomRightSB.getProgress() & (value*-1) < bottomLeftSB.getProgress()){
-                    ankleLayout.setBackgroundColor(Color.parseColor("#404040"));
+                if (value < ankleUI.rightSB.getProgress() & (value*-1) < ankleUI.leftSB.getProgress()){
+                    ankleUI.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
 
                 }
                 if(value >= 0 ){
-                    bottomAngle.setText(Integer.toString(value));
-                    bottomAngleL.setText("0");
+                    ankleUI.rightTV.setText(Integer.toString(value));
+                    ankleUI.leftTV.setText("0");
                 }
                 if(value <= 0) {
-                    bottomAngleL.setText(Integer.toString(-1*value));
-                    bottomAngle.setText("0");
+                    ankleUI.leftTV.setText(Integer.toString(-1*value));
+                    ankleUI.rightTV.setText("0");
                 }
             }
         });
@@ -607,12 +583,12 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            topLeftPB.setProgress(0);
-                            topRightPB.setProgress(0);
-                            topAngle.setVisibility(View.INVISIBLE);
-                            topAngleL.setVisibility(View.INVISIBLE);
-                            ULConnect.setBackgroundResource(R.drawable.hipwhite);
-                            hipLayout.setBackgroundColor(Color.parseColor("#404040"));
+                            hipUI.leftPB.setProgress(0);
+                            hipUI.rightPB.setProgress(0);
+                            hipUI.rightTV.setVisibility(View.INVISIBLE);
+                            hipUI.leftTV.setVisibility(View.INVISIBLE);
+                            hipUI.connect.setBackgroundResource(R.drawable.hipwhite);
+                            hipUI.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
                         }
                     });
                     setSensorStatus("Disconnected");
@@ -624,12 +600,12 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            midLeftPB.setProgress(0);
-                            midRightPB.setProgress(0);
-                            midAngle.setVisibility(View.INVISIBLE);
-                            midAngleL.setVisibility(View.INVISIBLE);
-                            LLConnect.setBackgroundResource(R.drawable.kneewhite);
-                            kneeLayout.setBackgroundColor(Color.parseColor("#333333"));
+                            kneeUI.leftPB.setProgress(0);
+                            kneeUI.rightPB.setProgress(0);
+                            kneeUI.rightTV.setVisibility(View.INVISIBLE);
+                            kneeUI.leftTV.setVisibility(View.INVISIBLE);
+                            kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);
+                            kneeUI.relativeLayout.setBackgroundColor(Color.parseColor("#333333"));
 
                         }
                     });
@@ -643,12 +619,12 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            bottomLeftPB.setProgress(0);
-                            bottomRightPB.setProgress(0);
-                            bottomAngle.setVisibility(View.INVISIBLE);
-                            bottomAngleL.setVisibility(View.INVISIBLE);
-                            footConnect.setBackgroundResource(R.drawable.anklewhite);
-                            ankleLayout.setBackgroundColor(Color.parseColor("#404040"));
+                            ankleUI.leftPB.setProgress(0);
+                            ankleUI.rightPB.setProgress(0);
+                            ankleUI.rightTV.setVisibility(View.INVISIBLE);
+                            ankleUI.leftTV.setVisibility(View.INVISIBLE);
+                            ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);
+                            ankleUI.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
 
                         }
                     });
@@ -679,8 +655,8 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            topAngle.setVisibility(VISIBLE);
-                            topAngleL.setVisibility(VISIBLE);
+                            hipUI.rightTV.setVisibility(VISIBLE);
+                            hipUI.leftTV.setVisibility(VISIBLE);
                         }
                     });
                 }
@@ -692,8 +668,8 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            midAngle.setVisibility(VISIBLE);
-                            midAngleL.setVisibility(VISIBLE);
+                            kneeUI.rightTV.setVisibility(VISIBLE);
+                            kneeUI.leftTV.setVisibility(VISIBLE);
                         }
                     });
                 }
@@ -705,8 +681,8 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            bottomAngle.setVisibility(VISIBLE);
-                            bottomAngleL.setVisibility(VISIBLE);
+                            ankleUI.rightTV.setVisibility(VISIBLE);
+                            ankleUI.leftTV.setVisibility(VISIBLE);
                         }
                     });
                 }
@@ -851,7 +827,7 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            ULConnect.setBackgroundResource(R.drawable.hipwhite);
+                            hipUI.connect.setBackgroundResource(R.drawable.hipwhite);
                         }
                     });
                 }
@@ -859,7 +835,7 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            LLConnect.setBackgroundResource(R.drawable.kneewhite);
+                            kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);
                         }
                     });
                 }
@@ -867,7 +843,7 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            ULConnect.setBackgroundResource(R.drawable.anklewhite);
+                            hipUI.connect.setBackgroundResource(R.drawable.anklewhite);
                         }
                     });
                 }
@@ -884,7 +860,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     setSensorStatus("Searching");
-                    ULConnect.setBackgroundResource(R.drawable.hipyellow);
+                    hipUI.connect.setBackgroundResource(R.drawable.hipyellow);
                 }
             });
             searchHip = true;
@@ -900,8 +876,8 @@ public class MainActivity extends AppCompatActivity {
             hipCalibrate = true;
             hipCalibrateCounter = 0;
             averageHip = 0;
-            topRightPB.setProgress(0);
-            topLeftPB.setProgress(0);
+            hipUI.leftPB.setProgress(0);
+            hipUI.rightPB.setProgress(0);
 
         }
     }
@@ -911,7 +887,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     setSensorStatus("Searching");
-                    LLConnect.setBackgroundResource(R.drawable.kneeyellow);
+                    kneeUI.connect.setBackgroundResource(R.drawable.kneeyellow);
                 }
             });
             searchHip = false;
@@ -926,8 +902,8 @@ public class MainActivity extends AppCompatActivity {
             kneeCalibrate = true;
             kneeCalibrateCounter = 0;
             averageKnee = 0;
-            midLeftPB.setProgress(0);
-            midRightPB.setProgress(0);
+            kneeUI.leftPB.setProgress(0);
+            kneeUI.rightPB.setProgress(0);
         }
     }
     public void connectFoot(View v){
@@ -936,7 +912,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     setSensorStatus("Searching");
-                    footConnect.setBackgroundResource(R.drawable.ankleyellow);
+                    ankleUI.connect.setBackgroundResource(R.drawable.ankleyellow);
                 }
             });
             searchHip = false;
@@ -951,8 +927,8 @@ public class MainActivity extends AppCompatActivity {
             ankleCalibrate = true;
             ankleCalibrateCounter = 0;
             averageAnkle = 0;
-            bottomLeftPB.setProgress(0);
-            bottomRightPB.setProgress(0);
+            ankleUI.leftPB.setProgress(0);
+            ankleUI.rightPB.setProgress(0);
         }
     }
 }
