@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
     //ble connections for the sensor
 
-    private BluetoothGatt upperLegGatt, lowerLegGatt, footGatt;
+    private BluetoothGatt  lowerLegGatt, footGatt;
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     private TextView sensorStatus;
 
@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         kneeUI = new SensorUI(R.id.lowerLegButton, R.id.progressBarMidRight, R.id.progressBarMidLeft, R.id.seekBarMidRight,R.id.seekBarMidLeft,
                 R.id.midAngle, R.id.midAngleL, R.id.relativeKnee, this);
         kneeUI.leftPB.setRotation(180);
+
         ankleUI = new SensorUI(R.id.footButton,R.id.progressBarBottomRight,R.id.progressBarBottomLeft,R.id.seekBarBottomRight,R.id.seekBarBottomLeft,
                 R.id.bottomAngle,R.id.bottomAngleL, R.id.relativeAnkle, this);
         ankleUI.leftPB.setRotation(180);
@@ -182,9 +183,9 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
                     Log.d(TAG, "coarse location permission granted");
-                    statusVariables.scanning = true;
-                    scanner.startScan(mScanCallback);
-                    timerHandler.postDelayed(scanTimeout, 2000);
+                    //statusVariables.scanning = true;
+                    //scanner.startScan(mScanCallback);
+                    //timerHandler.postDelayed(scanTimeout, 2000);
                 }
                 else
                 {
@@ -209,9 +210,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //what
-    //private BluetoothDevice peripheral;
-    //hwat
     public static Context getAppContext(){
         return MainActivity.context;
     }
@@ -257,20 +255,27 @@ public class MainActivity extends AppCompatActivity {
                         peripheral = device.getDevice();
                         if(!awaitingResponse) {
                             awaitingResponse = true;
+                            if(statusVariables.scanning){
+                                statusVariables.scanning = false;
+                                scanner.stopScan(mScanCallback);
+                            }
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    if(searchHip){
-                                        upperLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                                    if(hipUI.search){
+                                        hipUI.gatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
                                         hipUI.connect.setBackgroundResource(R.drawable.hipgreen);
+                                        hipUI.search = false;
                                     }
-                                    else if(searchKnee){
-                                        lowerLegGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                                    else if(kneeUI.search){
+                                        kneeUI.gatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
                                         kneeUI.connect.setBackgroundResource(R.drawable.kneegreen);
+                                        kneeUI.search = false;
                                     }
-                                    else if(searchAnkle){
-                                        footGatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
+                                    else if(ankleUI.search){
+                                        ankleUI.gatt = peripheral.connectGatt(getAppContext(),false,btleGattCallback);
                                         ankleUI.connect.setBackgroundResource(R.drawable.anklegreen);
+                                        ankleUI.search = false;
                                     }
                                 }
                             });
@@ -432,7 +437,7 @@ public class MainActivity extends AppCompatActivity {
         }
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
-            if(gatt == upperLegGatt | gatt == lowerLegGatt | gatt == footGatt) {
+            if(gatt == hipUI.gatt | gatt == kneeUI.gatt | gatt == ankleUI.gatt) {
                 byte[] temp = characteristic.getValue();
                 int MSB = temp[1] << 8;
                 int LSB = temp[0] & 0x000000FF;
@@ -474,100 +479,102 @@ public class MainActivity extends AppCompatActivity {
                 gravZ = -1.0f*val*0.001f;*/
 
                 final String output = gyroX + "\n";
-                Log.v(gatt.toString() , output);
+                //Log.v(gatt.toString() , output);
 
-                if(gatt == upperLegGatt) {
-                    if(hipCalibrate & hipCalibrateCounter < 10){
-                        hipCalibrateCounter++;
-                        averageHip = averageHip + gyroX;
+
+
+                if(gatt == hipUI.gatt) {
+                    if(hipUI.calibrate & hipUI.calibrateCounter < 10){
+                        hipUI.calibrateCounter++;
+                        hipUI.average = hipUI.average + gyroX;
                     }
-                    else if (hipCalibrate & hipCalibrateCounter == 10){
-                        averageHip = averageHip/10;
-                        hipCalibrateCounter++;
+                    else if (hipUI.calibrate & hipUI.calibrateCounter == 10){
+                        hipUI.average = hipUI.average/10;
+                        hipUI.calibrateCounter++;
                     }
-                    else if (hipCalibrate & hipCalibrateCounter > 10){
-                        Log.v(TAG, "average found " + (int)averageHip + "\n");
-                        if((averageHip+90.0) < 180 & (averageHip - 90) > -180){
-                            setGaugeValue((int)(gyroX + (-1*averageHip)));
+                    else if (hipUI.calibrate & hipUI.calibrateCounter > 10){
+                        //Log.v(TAG, "average found " + (int)averageHip + "\n");
+                        if((hipUI.average+90.0) < 180 & (hipUI.average - 90) > -180){
+                            setGaugeValue((int)(gyroX + (-1*hipUI.average)));
                         }
-                        else if((averageHip + 90) > 180){
+                        else if((hipUI.average + 90) > 180){
                             if (gyroX < 0 ){
-                                setGaugeValue((int)((180 - averageHip) + (gyroX + 180)));
+                                setGaugeValue((int)((180 - hipUI.average) + (gyroX + 180)));
                             }
                             else if(gyroX > 0){
-                                setGaugeValue((int)(gyroX + (-1*averageHip)));
+                                setGaugeValue((int)(gyroX + (-1*hipUI.average)));
                             }
                         }
-                        else if((averageHip - 90) < -180){
+                        else if((hipUI.average - 90) < -180){
                             if(gyroX < 0 ){
-                                setGaugeValue((int)(gyroX + (-1*averageHip)));
+                                setGaugeValue((int)(gyroX + (-1*hipUI.average)));
                             }
                             if(gyroX > 0){
-                                setGaugeValue((int)((-180 - averageHip) + (gyroX - 180)));
+                                setGaugeValue((int)((-180 - hipUI.average) + (gyroX - 180)));
                             }
                         }
                     }
 
                 }
-                if(gatt == lowerLegGatt){
-                    if(kneeCalibrate & kneeCalibrateCounter < 10){
-                        kneeCalibrateCounter++;
-                        averageKnee = averageKnee + gyroX;
+                if(gatt == kneeUI.gatt){
+                    if(kneeUI.calibrate & kneeUI.calibrateCounter < 10){
+                        kneeUI.calibrateCounter++;
+                        kneeUI.average = kneeUI.average + gyroX;
                     }
-                    else if (kneeCalibrate & kneeCalibrateCounter == 10){
-                        averageKnee = averageKnee/10;
-                        kneeCalibrateCounter++;
+                    else if (kneeUI.calibrate & kneeUI.calibrateCounter == 10){
+                        kneeUI.average = kneeUI.average/10;
+                        kneeUI.calibrateCounter++;
                     }
-                    else if (kneeCalibrate & kneeCalibrateCounter > 10){
-                        Log.v(TAG, "average found " + (int)averageKnee + "\n");
-                        if((averageKnee+90.0) < 180 & (averageKnee - 90) > -180){
-                            setGaugeValueLL((int)(gyroX + (-1*averageKnee)));
+                    else if (kneeUI.calibrate & kneeUI.calibrateCounter > 10){
+                        //Log.v(TAG, "average found " + (int)averageKnee + "\n");
+                        if((kneeUI.average+90.0) < 180 & (kneeUI.average - 90) > -180){
+                            setGaugeValueLL((int)(gyroX + (-1*kneeUI.average)));
                         }
-                        else if((averageKnee+90) > 180){
+                        else if((kneeUI.average+90) > 180){
                             if (gyroX < 0 ){
-                                setGaugeValueLL((int)((180 - averageKnee) + (gyroX + 180)));
+                                setGaugeValueLL((int)((180 - kneeUI.average) + (gyroX + 180)));
                             }
                             else if(gyroX > 0){
-                                setGaugeValueLL((int)(gyroX + (-1*averageKnee)));
+                                setGaugeValueLL((int)(gyroX + (-1*kneeUI.average)));
                             }
                         }
-                        else if((averageKnee-90) < -180){
+                        else if((kneeUI.average-90) < -180){
                             if(gyroX < 0 ){
-                                setGaugeValueLL((int)(gyroX + (-1*averageKnee)));
+                                setGaugeValueLL((int)(gyroX + (-1*kneeUI.average)));
                             }
                             if(gyroX > 0){
-                                setGaugeValueLL((int)((-180 - averageKnee) + (gyroX - 180)));
+                                setGaugeValueLL((int)((-180 - kneeUI.average) + (gyroX - 180)));
                             }
                         }
                     }
                 }
-                if(gatt == footGatt){
-                    if(ankleCalibrate & ankleCalibrateCounter < 10){
-                        ankleCalibrateCounter++;
-                        averageAnkle = averageAnkle + gyroX;
+                if(gatt == ankleUI.gatt){
+                    if(ankleUI.calibrate & ankleUI.calibrateCounter < 10){
+                        ankleUI.calibrateCounter++;
+                        ankleUI.average = ankleUI.average + gyroX;
                     }
-                    else if (ankleCalibrate & ankleCalibrateCounter == 10){
-                        averageAnkle = averageAnkle/10;
-                        ankleCalibrateCounter++;
+                    else if (ankleUI.calibrate & ankleUI.calibrateCounter == 10){
+                        ankleUI.average = ankleUI.average/10;
+                        ankleUI.calibrateCounter++;
                     }
-                    else if (ankleCalibrate & ankleCalibrateCounter > 10){
-                        Log.v(TAG, "average found " + (int)averageAnkle + "\n");
-                        if((averageAnkle+90.0) < 180 & (averageAnkle - 90) > -180){
-                            setGaugeValueFoot((int)(gyroX + (-1*averageAnkle)));
+                    else if (ankleUI.calibrate & ankleUI.calibrateCounter > 10){
+                        //Log.v(TAG, "average found " + (int)averageAnkle + "\n");
+                        if((ankleUI.average+90.0) < 180 & (ankleUI.average - 90) > -180){
+                            setGaugeValueFoot((int)(gyroX + (-1*ankleUI.average)));
                         }
-                        else if((averageAnkle+90) > 180) {
+                        else if((ankleUI.average+90) > 180) {
                             if (gyroX < 0) {
-                                setGaugeValueFoot((int) ((180 - averageAnkle) + (gyroX + 180)));
+                                setGaugeValueFoot((int) ((180 - ankleUI.average) + (gyroX + 180)));
                             } else if (gyroX > 0) {
-                                setGaugeValueFoot((int) (gyroX + (-1 * averageAnkle)));
+                                setGaugeValueFoot((int) (gyroX + (-1 * ankleUI.average)));
                             }
                         }
-                        else if((averageAnkle-90) < -180){
+                        else if((ankleUI.average-90) < -180){
                             if(gyroX < 0 ){
-                                setGaugeValueFoot((int)(gyroX + (-1*averageAnkle)));
+                                setGaugeValueFoot((int)(gyroX + (-1*ankleUI.average)));
                             }
                             if(gyroX > 0){
-                                setGaugeValueFoot((int)((-180 - averageAnkle) + (gyroX - 180)));
+                                setGaugeValueFoot((int)((-180 - ankleUI.average) + (gyroX - 180)));
                             }
                         }
                     }
@@ -579,7 +586,7 @@ public class MainActivity extends AppCompatActivity {
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             if(newState == 0)
             {
-                if(gatt == upperLegGatt) {
+                if(gatt == hipUI.gatt) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -592,11 +599,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                     setSensorStatus("Disconnected");
-                    upperLegGatt.close();
-                    upperLegGatt = null;
+                    hipUI.gatt.close();
+                    hipUI.gatt = null;
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
-                if(gatt == lowerLegGatt){
+                if(gatt == kneeUI.gatt){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -611,11 +618,11 @@ public class MainActivity extends AppCompatActivity {
                     });
                     setSensorStatus("Disconnected");
                     //
-                    lowerLegGatt.close();
-                    lowerLegGatt = null;
+                    kneeUI.gatt.close();
+                    kneeUI.gatt = null;
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
-                if(gatt == footGatt){
+                if(gatt == ankleUI.gatt){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -629,16 +636,16 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                     setSensorStatus("Disconnected");
-                    footGatt.close();
-                    footGatt = null;
+                    ankleUI.gatt.close();
+                    ankleUI.gatt = null;
                     Log.v("BLUETOOTH", "DISCONNECTED");
                 }
                 if(gatt == fireflyGatt){
-                    if(!statusVariables.scanning){
+                    /*if(!statusVariables.scanning){
                         statusVariables.scanning = true;
                         scanner.startScan(mScanCallback);
                         timerHandler.postDelayed(scanTimeout, 10000);
-                    }
+                    }*/
                 }
             }
             else if( newState == 1)
@@ -648,8 +655,8 @@ public class MainActivity extends AppCompatActivity {
             else if( newState == 2)
             {
                 Log.v("BLUETOOTH", "CONNECTED");
-                if(gatt == upperLegGatt) {
-                    upperLegGatt.discoverServices();
+                if(gatt == hipUI.gatt) {
+                    hipUI.gatt.discoverServices();
                     setSensorStatus("Connecting...");
                     bgFlag = true;
                     runOnUiThread(new Runnable() {
@@ -660,8 +667,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                 }
-                else if(gatt == lowerLegGatt) {
-                    lowerLegGatt.discoverServices();
+                else if(gatt == kneeUI.gatt) {
+                    kneeUI.gatt.discoverServices();
                     setSensorStatus("Connecting...");
                     bgFlag = true;
 
@@ -673,8 +680,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                 }
-                else if(gatt == footGatt) {
-                    footGatt.discoverServices();
+                else if(gatt == ankleUI.gatt) {
+                    ankleUI.gatt.discoverServices();
                     setSensorStatus("Connecting...");
                     bgFlag = true;
 
@@ -816,14 +823,16 @@ public class MainActivity extends AppCompatActivity {
             statusVariables.stimming = false;
         }
     };
+
     Runnable scanTimeout = new Runnable() {
         @Override
         public void run() {
             if(statusVariables.scanning){
                 scanner.stopScan(mScanCallback);
-                setSensorStatus("Select");
                 statusVariables.scanning = false;
-                if(searchHip & upperLegGatt == null){
+                setSensorStatus("Select");
+
+                if(hipUI.search & hipUI.gatt == null){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -831,7 +840,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                 }
-                if(searchKnee & lowerLegGatt == null){
+                if(kneeUI.search & kneeUI.gatt == null){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -839,11 +848,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                 }
-                if(searchAnkle & footGatt == null){
+                if(ankleUI.search & ankleUI.gatt == null){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            hipUI.connect.setBackgroundResource(R.drawable.anklewhite);
+                            ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);
                         }
                     });
                 }
@@ -852,10 +861,13 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    boolean hipCalibrate, kneeCalibrate, ankleCalibrate = false;
 
     public void connectThigh(View v){
-        if(upperLegGatt == null){
+        if(statusVariables.scanning){
+            statusVariables.scanning = false;
+            scanner.stopScan(mScanCallback);
+        }
+        if(hipUI.gatt == null){
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -863,26 +875,22 @@ public class MainActivity extends AppCompatActivity {
                     hipUI.connect.setBackgroundResource(R.drawable.hipyellow);
                 }
             });
-            searchHip = true;
-            searchAnkle = false;
-            searchKnee = false;
-            statusVariables.scanning = true;
-            scanner.startScan(mScanCallback);
-            timerHandler.postDelayed(scanTimeout,10000);
+            /*
+            timerHandler.postDelayed(scanTimeout,10000);*/
             awaitingResponse = false;
+            hipUI.searchSensor(hipUI, statusVariables, scanner, mScanCallback);
         }
         else{
-            //zero the sensor
-            hipCalibrate = true;
-            hipCalibrateCounter = 0;
-            averageHip = 0;
-            hipUI.leftPB.setProgress(0);
-            hipUI.rightPB.setProgress(0);
+            hipUI.calibrateSensor(hipUI);
 
         }
     }
     public void connectLowerLeg(View v){
-        if(lowerLegGatt ==  null) {
+        if(statusVariables.scanning){
+            statusVariables.scanning = false;
+            scanner.stopScan(mScanCallback);
+        }
+        if(kneeUI.gatt ==  null) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -890,24 +898,21 @@ public class MainActivity extends AppCompatActivity {
                     kneeUI.connect.setBackgroundResource(R.drawable.kneeyellow);
                 }
             });
-            searchHip = false;
-            searchAnkle = false;
-            searchKnee = true;
-            statusVariables.scanning = true;
-            scanner.startScan(mScanCallback);
-            timerHandler.postDelayed(scanTimeout,10000);
+            /*
+            timerHandler.postDelayed(scanTimeout,10000);*/
             awaitingResponse = false;
+            kneeUI.searchSensor(kneeUI,statusVariables, scanner, mScanCallback);
         }
         else{
-            kneeCalibrate = true;
-            kneeCalibrateCounter = 0;
-            averageKnee = 0;
-            kneeUI.leftPB.setProgress(0);
-            kneeUI.rightPB.setProgress(0);
+            kneeUI.calibrateSensor(kneeUI);
         }
     }
     public void connectFoot(View v){
-        if(footGatt == null) {
+        if(statusVariables.scanning){
+            statusVariables.scanning = false;
+            scanner.stopScan(mScanCallback);
+        }
+        if(ankleUI.gatt == null) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -915,20 +920,17 @@ public class MainActivity extends AppCompatActivity {
                     ankleUI.connect.setBackgroundResource(R.drawable.ankleyellow);
                 }
             });
-            searchHip = false;
-            searchAnkle = true;
-            searchKnee = false;
-            statusVariables.scanning = true;
-            scanner.startScan(mScanCallback);
-            timerHandler.postDelayed(scanTimeout,10000);
+            /*
+            timerHandler.postDelayed(scanTimeout,10000);*/
             awaitingResponse = false;
+            ankleUI.searchSensor(ankleUI,statusVariables, scanner,mScanCallback);
         }
         else{
-            ankleCalibrate = true;
-            ankleCalibrateCounter = 0;
-            averageAnkle = 0;
-            ankleUI.leftPB.setProgress(0);
-            ankleUI.rightPB.setProgress(0);
+
+           ankleUI.calibrateSensor(ankleUI);
         }
+    }
+    public void findGaugeValue(BluetoothGatt gatt){
+
     }
 }
