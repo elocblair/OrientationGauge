@@ -253,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
                     if(device.getRssi() >= -70){
                         final BluetoothDevice peripheral;
                         peripheral = device.getDevice();
-                        if(!awaitingResponse) {
+                        //if(!awaitingResponse) {
                             awaitingResponse = true;
                             if(statusVariables.scanning){
                                 statusVariables.scanning = false;
@@ -279,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
                             });
-                        }
+                        //}
                     }
                 }
                 if(deviceName.equals("FireflyPCM")){
@@ -296,20 +296,20 @@ public class MainActivity extends AppCompatActivity {
     boolean bgFlag = false;
 
     //GAUGE
-    public void setGaugeValue(final int value) {
+    public void setGaugeValue(final int value, final SensorUI sensor) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if(value < 0) {
-                    hipUI.leftPB.setProgress(-1*value);
-                    hipUI.rightPB.setProgress(0);
+                    sensor.leftPB.setProgress(-1*value);
+                    sensor.rightPB.setProgress(0);
 
                 }
                 else if(value > 0){
-                    hipUI.leftPB.setProgress(0);
-                    hipUI.rightPB.setProgress(value);
+                    sensor.leftPB.setProgress(0);
+                    sensor.rightPB.setProgress(value);
                 }
-                if (value > hipUI.rightSB.getProgress() | (value*-1) > hipUI.leftSB.getProgress()){
+                if (value > sensor.rightSB.getProgress() | (value*-1) > sensor.leftSB.getProgress()){
                     if(!statusVariables.stimming) {
                         statusVariables.stimming = true;
                         Log.v(TAG, "Start command");
@@ -318,114 +318,34 @@ public class MainActivity extends AppCompatActivity {
                         timerHandler.postDelayed(fireflyDebounce,5000);
 
                     }
-                    hipUI.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
+                    sensor.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
 
                 }
 
-                if (value < hipUI.rightSB.getProgress() & (value*-1) < hipUI.leftSB.getProgress()){
+                if (value < sensor.rightSB.getProgress() & (value*-1) < sensor.leftSB.getProgress()){
 
-                    hipUI.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
-
-                }
-                if(value >= 0 ){
-                    hipUI.rightTV.setText(Integer.toString(value));
-                    hipUI.leftTV.setText("0");
-                }
-                if(value <= 0) {
-                    hipUI.leftTV.setText(Integer.toString(-1*value));
-                    hipUI.rightTV.setText("0");
-                }
-            }
-        });
-
-    }
-    public void setGaugeValueLL(final int value) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (value == 0) {
-                }
-                if(value < 0) {
-                    kneeUI.leftPB.setProgress(-1*value);
-                    kneeUI.rightPB.setProgress(0);
-
-                }
-                else if(value > 0){
-                    kneeUI.leftPB.setProgress(0);
-                    kneeUI.rightPB.setProgress(value);
-                }
-                if (value > kneeUI.rightSB.getProgress() | (value*-1) > kneeUI.leftSB.getProgress()){
-                    if(!statusVariables.stimming) {
-                        statusVariables.stimming = true;
-                        Log.v(TAG, "Start command");
-                        triggerFirefly(fireflyCommands.startStim);
-                        timerHandler.postDelayed(fireflyStop, 1000);
-                        timerHandler.postDelayed(fireflyDebounce,5000);
-
+                    sensor.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
+                    if(sensor == kneeUI){
+                        sensor.relativeLayout.setBackgroundColor(Color.parseColor("#333333"));
                     }
-                    kneeUI.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
-
-                }
-                if (value < kneeUI.rightSB.getProgress() & (value*-1) < kneeUI.leftSB.getProgress()){
-                    kneeUI.relativeLayout.setBackgroundColor(Color.parseColor("#333333"));
 
                 }
                 if(value >= 0 ){
-                    kneeUI.rightTV.setText(Integer.toString(value));
-                    kneeUI.leftTV.setText("0");
+                    sensor.rightTV.setText(Integer.toString(value));
+                    sensor.leftTV.setText("0");
                 }
                 if(value <= 0) {
-                    kneeUI.leftTV.setText(Integer.toString(-1*value));
-                    kneeUI.rightTV.setText("0");
+                    sensor.leftTV.setText(Integer.toString(-1*value));
+                    sensor.rightTV.setText("0");
                 }
             }
         });
-    }
-    public void setGaugeValueFoot(final int value) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (value == 0) {
-                }
-                if(value < 0) {
-                    ankleUI.leftPB.setProgress(-1*value);
-                    ankleUI.rightPB.setProgress(0);
 
-                }
-                else if(value > 0){
-                    ankleUI.leftPB.setProgress(0);
-                    ankleUI.rightPB.setProgress(value);
-                }
-                if (value > ankleUI.rightSB.getProgress() | (value*-1) > ankleUI.leftSB.getProgress()){
-                    if(!statusVariables.stimming) {
-                        statusVariables.stimming = true;
-                        Log.v(TAG, "Start command");
-                        triggerFirefly(fireflyCommands.startStim);
-                        timerHandler.postDelayed(fireflyStop, 1000);
-                        timerHandler.postDelayed(fireflyDebounce,5000);
-                    }
-                    ankleUI.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
-                }
-                if (value < ankleUI.rightSB.getProgress() & (value*-1) < ankleUI.leftSB.getProgress()){
-                    ankleUI.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
-
-                }
-                if(value >= 0 ){
-                    ankleUI.rightTV.setText(Integer.toString(value));
-                    ankleUI.leftTV.setText("0");
-                }
-                if(value <= 0) {
-                    ankleUI.leftTV.setText(Integer.toString(-1*value));
-                    ankleUI.rightTV.setText("0");
-                }
-            }
-        });
     }
 
 
-    float gravX, gravY, gravZ,linX,linY, linZ;
-    float averageHip, averageKnee, averageAnkle = 0;
-    int hipCalibrateCounter, kneeCalibrateCounter, ankleCalibrateCounter = 0;
+    float linX,linY, linZ;
+
 
     //GATT CALLBACK
     private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
@@ -484,100 +404,13 @@ public class MainActivity extends AppCompatActivity {
 
 
                 if(gatt == hipUI.gatt) {
-                    if(hipUI.calibrate & hipUI.calibrateCounter < 10){
-                        hipUI.calibrateCounter++;
-                        hipUI.average = hipUI.average + gyroX;
-                    }
-                    else if (hipUI.calibrate & hipUI.calibrateCounter == 10){
-                        hipUI.average = hipUI.average/10;
-                        hipUI.calibrateCounter++;
-                    }
-                    else if (hipUI.calibrate & hipUI.calibrateCounter > 10){
-                        //Log.v(TAG, "average found " + (int)averageHip + "\n");
-                        if((hipUI.average+90.0) < 180 & (hipUI.average - 90) > -180){
-                            setGaugeValue((int)(gyroX + (-1*hipUI.average)));
-                        }
-                        else if((hipUI.average + 90) > 180){
-                            if (gyroX < 0 ){
-                                setGaugeValue((int)((180 - hipUI.average) + (gyroX + 180)));
-                            }
-                            else if(gyroX > 0){
-                                setGaugeValue((int)(gyroX + (-1*hipUI.average)));
-                            }
-                        }
-                        else if((hipUI.average - 90) < -180){
-                            if(gyroX < 0 ){
-                                setGaugeValue((int)(gyroX + (-1*hipUI.average)));
-                            }
-                            if(gyroX > 0){
-                                setGaugeValue((int)((-180 - hipUI.average) + (gyroX - 180)));
-                            }
-                        }
-                    }
-
+                    hipUI.findGaugeValue(hipUI, gyroX);
                 }
                 if(gatt == kneeUI.gatt){
-                    if(kneeUI.calibrate & kneeUI.calibrateCounter < 10){
-                        kneeUI.calibrateCounter++;
-                        kneeUI.average = kneeUI.average + gyroX;
-                    }
-                    else if (kneeUI.calibrate & kneeUI.calibrateCounter == 10){
-                        kneeUI.average = kneeUI.average/10;
-                        kneeUI.calibrateCounter++;
-                    }
-                    else if (kneeUI.calibrate & kneeUI.calibrateCounter > 10){
-                        //Log.v(TAG, "average found " + (int)averageKnee + "\n");
-                        if((kneeUI.average+90.0) < 180 & (kneeUI.average - 90) > -180){
-                            setGaugeValueLL((int)(gyroX + (-1*kneeUI.average)));
-                        }
-                        else if((kneeUI.average+90) > 180){
-                            if (gyroX < 0 ){
-                                setGaugeValueLL((int)((180 - kneeUI.average) + (gyroX + 180)));
-                            }
-                            else if(gyroX > 0){
-                                setGaugeValueLL((int)(gyroX + (-1*kneeUI.average)));
-                            }
-                        }
-                        else if((kneeUI.average-90) < -180){
-                            if(gyroX < 0 ){
-                                setGaugeValueLL((int)(gyroX + (-1*kneeUI.average)));
-                            }
-                            if(gyroX > 0){
-                                setGaugeValueLL((int)((-180 - kneeUI.average) + (gyroX - 180)));
-                            }
-                        }
-                    }
+                    kneeUI.findGaugeValue(kneeUI,gyroX);
                 }
                 if(gatt == ankleUI.gatt){
-                    if(ankleUI.calibrate & ankleUI.calibrateCounter < 10){
-                        ankleUI.calibrateCounter++;
-                        ankleUI.average = ankleUI.average + gyroX;
-                    }
-                    else if (ankleUI.calibrate & ankleUI.calibrateCounter == 10){
-                        ankleUI.average = ankleUI.average/10;
-                        ankleUI.calibrateCounter++;
-                    }
-                    else if (ankleUI.calibrate & ankleUI.calibrateCounter > 10){
-                        //Log.v(TAG, "average found " + (int)averageAnkle + "\n");
-                        if((ankleUI.average+90.0) < 180 & (ankleUI.average - 90) > -180){
-                            setGaugeValueFoot((int)(gyroX + (-1*ankleUI.average)));
-                        }
-                        else if((ankleUI.average+90) > 180) {
-                            if (gyroX < 0) {
-                                setGaugeValueFoot((int) ((180 - ankleUI.average) + (gyroX + 180)));
-                            } else if (gyroX > 0) {
-                                setGaugeValueFoot((int) (gyroX + (-1 * ankleUI.average)));
-                            }
-                        }
-                        else if((ankleUI.average-90) < -180){
-                            if(gyroX < 0 ){
-                                setGaugeValueFoot((int)(gyroX + (-1*ankleUI.average)));
-                            }
-                            if(gyroX > 0){
-                                setGaugeValueFoot((int)((-180 - ankleUI.average) + (gyroX - 180)));
-                            }
-                        }
-                    }
+                    ankleUI.findGaugeValue(ankleUI, gyroX);
                 }
             }
         }
@@ -929,8 +762,5 @@ public class MainActivity extends AppCompatActivity {
 
            ankleUI.calibrateSensor(ankleUI);
         }
-    }
-    public void findGaugeValue(BluetoothGatt gatt){
-
     }
 }

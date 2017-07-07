@@ -11,7 +11,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.support.v7.app.AppCompatActivity;
 
-public class SensorUI extends AppCompatActivity {
+public class SensorUI extends MainActivity {
     public ImageButton connect;
     public ProgressBar rightPB, leftPB;
     public SeekBar rightSB, leftSB;
@@ -40,17 +40,10 @@ public class SensorUI extends AppCompatActivity {
         //BluetoothGatt gatt = null;
     }
     public void searchSensor(final SensorUI sensor, Status status, BluetoothLeScanner scanner, ScanCallback mScanCallback ){
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                //setSensorStatus("Searching");
-                //sensor.connect.setBackgroundResource(R.drawable.hipyellow);
-            }
-        });
+
         sensor.search = true;
         status.scanning = true;
         scanner.startScan(mScanCallback);
-        //timerHandler.postDelayed(scanTimeout,10000);
     }
     public void calibrateSensor(final SensorUI sensor){
         //zero the sensor
@@ -60,16 +53,40 @@ public class SensorUI extends AppCompatActivity {
         sensor.leftPB.setProgress(0);
         sensor.rightPB.setProgress(0);
     }
-    //SENSOR STATUS TEXT
-    /*public void setSensorStatus(String message)
-    {
-        final String msg = "Sensor " + message;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                sensorStatus.setText(msg);
+
+    public void findGaugeValue(final SensorUI sensor, float gyroX){
+        if(gatt == sensor.gatt){
+            if(sensor.calibrate & sensor.calibrateCounter < 10){
+                sensor.calibrateCounter++;
+                sensor.average = sensor.average + gyroX;
             }
-        });
-    }*/
+            else if (sensor.calibrate & sensor.calibrateCounter == 10){
+                sensor.average = sensor.average/10;
+                sensor.calibrateCounter++;
+            }
+            else if (sensor.calibrate & sensor.calibrateCounter > 10){
+                if((sensor.average+90.0) < 180 & (sensor.average - 90) > -180){
+                    setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
+                }
+                else if((sensor.average+90) > 180){
+                    if (gyroX < 0 ){
+                        setGaugeValue((int)((180 - sensor.average) + (gyroX + 180)),sensor);
+                    }
+                    else if(gyroX > 0){
+                        setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
+                    }
+                }
+                else if((sensor.average-90) < -180){
+                    if(gyroX < 0 ){
+                        setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
+                    }
+                    if(gyroX > 0){
+                        setGaugeValue((int)((-180 - sensor.average) + (gyroX - 180)), sensor);
+                    }
+                }
+            }
+        }
+    }
+
 
 }
