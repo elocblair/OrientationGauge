@@ -37,7 +37,6 @@ public class SensorUI extends MainActivity {
         calibrate = false;
         search = false;
         sensorStatus = (TextView) MainActivity.findViewById(R.id.SensorStatus);
-        //BluetoothGatt gatt = null;
     }
     public void searchSensor(final SensorUI sensor, Status status, BluetoothLeScanner scanner, ScanCallback mScanCallback ){
 
@@ -55,34 +54,32 @@ public class SensorUI extends MainActivity {
     }
 
     public void findGaugeValue(final SensorUI sensor, float gyroX){
-        if(gatt == sensor.gatt){
-            if(sensor.calibrate & sensor.calibrateCounter < 10){
-                sensor.calibrateCounter++;
-                sensor.average = sensor.average + gyroX;
+        if(sensor.calibrate & sensor.calibrateCounter < 10){
+            sensor.calibrateCounter++;
+            sensor.average = sensor.average + gyroX;
+        }
+        else if (sensor.calibrate & sensor.calibrateCounter == 10){
+            sensor.average = sensor.average/10;
+            sensor.calibrateCounter++;
+        }
+        else if (sensor.calibrate & sensor.calibrateCounter > 10){
+            if((sensor.average+90.0) < 180 & (sensor.average - 90) > -180){
+                setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
             }
-            else if (sensor.calibrate & sensor.calibrateCounter == 10){
-                sensor.average = sensor.average/10;
-                sensor.calibrateCounter++;
-            }
-            else if (sensor.calibrate & sensor.calibrateCounter > 10){
-                if((sensor.average+90.0) < 180 & (sensor.average - 90) > -180){
+            else if((sensor.average+90) > 180){
+                if (gyroX < 0 ){
+                    setGaugeValue((int)((180 - sensor.average) + (gyroX + 180)),sensor);
+                }
+                else if(gyroX > 0){
                     setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
                 }
-                else if((sensor.average+90) > 180){
-                    if (gyroX < 0 ){
-                        setGaugeValue((int)((180 - sensor.average) + (gyroX + 180)),sensor);
-                    }
-                    else if(gyroX > 0){
-                        setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
-                    }
+            }
+            else if((sensor.average-90) < -180){
+                if(gyroX < 0 ){
+                    setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
                 }
-                else if((sensor.average-90) < -180){
-                    if(gyroX < 0 ){
-                        setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
-                    }
-                    if(gyroX > 0){
-                        setGaugeValue((int)((-180 - sensor.average) + (gyroX - 180)), sensor);
-                    }
+                if(gyroX > 0){
+                    setGaugeValue((int)((-180 - sensor.average) + (gyroX - 180)), sensor);
                 }
             }
         }

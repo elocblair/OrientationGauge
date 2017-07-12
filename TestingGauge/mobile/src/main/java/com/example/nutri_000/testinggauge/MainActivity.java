@@ -2,11 +2,17 @@ package com.example.nutri_000.testinggauge;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
+import android.content.ComponentName;
 import android.content.DialogInterface;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.renderscript.ScriptGroup;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -27,12 +33,34 @@ import android.bluetooth.le.ScanCallback;
 import java.util.List;
 import java.util.UUID;
 import android.util.Log;
+import android.widget.Toast;
+
 import static android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
 import static android.view.View.VISIBLE;
 
 
 public class MainActivity extends AppCompatActivity {
 
+    BleService bleService;
+    boolean isBound = false;
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            BleService.BleBinder binder = (BleService.BleBinder) service;
+            bleService = binder.getService();
+            isBound = true;
+            bleService.initializeBle();
+            bleService.scanner.startScan(mScanCallback);
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            bleService = null;
+            isBound = false;
+        }
+    };
 
     private static final String TAG = "Cole";
 
@@ -48,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter adapter;
     private static Context context;
 
-    private BluetoothLeScanner scanner ;
+    private BluetoothLeScanner scanner;
 
     //BLE connections for the firefly
     private BluetoothGatt fireflyGatt;
@@ -56,25 +84,18 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothDevice firefly = null;
     private FloatingActionButton stimButton;
 
-
     //ble connections for the sensor
-
-    private BluetoothGatt  lowerLegGatt, footGatt;
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     private TextView sensorStatus;
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
-    boolean searchHip, searchKnee, searchAnkle = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         // all UI components for main activity
-        MainActivity.context = getApplicationContext();
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
-        context = this;
 
         hipUI = new SensorUI(R.id.upperLegButton, R.id.progressBarTopRight, R.id.progressBarTopLeft, R.id.seekBarTopRight, R.id.seekBarTopLeft,
                 R.id.topAngle, R.id.topAngleL,R.id.relativeHip, this );
@@ -183,6 +204,9 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
                     Log.d(TAG, "coarse location permission granted");
+                    Intent bleIntent = new Intent(this, BleService.class);
+                    startService(bleIntent);
+                    bindService(bleIntent, mServiceConnection, this.BIND_AUTO_CREATE);
                     //statusVariables.scanning = true;
                     //scanner.startScan(mScanCallback);
                     //timerHandler.postDelayed(scanTimeout, 2000);
@@ -253,8 +277,6 @@ public class MainActivity extends AppCompatActivity {
                     if(device.getRssi() >= -70){
                         final BluetoothDevice peripheral;
                         peripheral = device.getDevice();
-                        //if(!awaitingResponse) {
-                            awaitingResponse = true;
                             if(statusVariables.scanning){
                                 statusVariables.scanning = false;
                                 scanner.stopScan(mScanCallback);
@@ -279,7 +301,6 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
                             });
-                        //}
                     }
                 }
                 if(deviceName.equals("FireflyPCM")){
@@ -762,5 +783,37 @@ public class MainActivity extends AppCompatActivity {
 
            ankleUI.calibrateSensor(ankleUI);
         }
+    }
+    public void startDetails(View v){
+        Intent intent = new Intent(this, DetailsActivity.class);
+        if (ankleUI.gatt != null){
+            String ankleDeviceAddress = ankleUI.gatt.getDevice().getAddress().toString();
+            intent.putExtra("ankleDeviceAddress", ankleDeviceAddress);
+        }
+        else{
+            String string = null;
+            intent.putExtra("ankleDeviceAddress", string);
+        }
+        if(kneeUI.gatt != null){
+            String kneeDeviceAddress = kneeUI.gatt.getDevice().getAddress().toString();
+            intent.putExtra("kneeDeviceAddress", kneeDeviceAddress);
+        }
+        else{
+            String string = null;
+            intent.putExtra("kneeDeviceAddress", string);
+        }
+        if(hipUI.gatt != null){
+            String hipDeviceAddress = hipUI.gatt.getDevice().getAddress().toString();
+            intent.putExtra("hipDeviceAddress", hipDeviceAddress);
+        }
+        else{
+            String string = null;
+            intent.putExtra("hipDeviceAddress", string);
+        }
+        startActivity(intent);
+        /*Fragment detailsFragment = new DetailsFragment();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        transaction.add(detailsFragment, TAG);
+        transaction.commit();*/
     }
 }
