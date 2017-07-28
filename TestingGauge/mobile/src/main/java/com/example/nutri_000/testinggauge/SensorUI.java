@@ -1,7 +1,6 @@
 package com.example.nutri_000.testinggauge;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothGatt;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.widget.ImageButton;
@@ -9,7 +8,6 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.support.v7.app.AppCompatActivity;
 
 public class SensorUI extends MainActivity {
     public ImageButton connect;
@@ -20,8 +18,8 @@ public class SensorUI extends MainActivity {
     public float average;
     public int calibrateCounter;
     boolean calibrate;
-    BluetoothGatt gatt;
     boolean search;
+    public int green,yellow,white;
     static TextView sensorStatus;
     public SensorUI(int button, int rPB, int lPB, int rSB, int lSB, int rTV, int lTV, int relativeLO, Activity MainActivity){
         connect = (ImageButton) MainActivity.findViewById(button);
@@ -38,12 +36,6 @@ public class SensorUI extends MainActivity {
         search = false;
         sensorStatus = (TextView) MainActivity.findViewById(R.id.SensorStatus);
     }
-    public void searchSensor(final SensorUI sensor, Status status, BluetoothLeScanner scanner, ScanCallback mScanCallback ){
-
-        sensor.search = true;
-        status.scanning = true;
-        scanner.startScan(mScanCallback);
-    }
     public void calibrateSensor(final SensorUI sensor){
         //zero the sensor
         calibrate = true;
@@ -52,38 +44,4 @@ public class SensorUI extends MainActivity {
         sensor.leftPB.setProgress(0);
         sensor.rightPB.setProgress(0);
     }
-
-    public void findGaugeValue(final SensorUI sensor, float gyroX){
-        if(sensor.calibrate & sensor.calibrateCounter < 10){
-            sensor.calibrateCounter++;
-            sensor.average = sensor.average + gyroX;
-        }
-        else if (sensor.calibrate & sensor.calibrateCounter == 10){
-            sensor.average = sensor.average/10;
-            sensor.calibrateCounter++;
-        }
-        else if (sensor.calibrate & sensor.calibrateCounter > 10){
-            if((sensor.average+90.0) < 180 & (sensor.average - 90) > -180){
-                setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
-            }
-            else if((sensor.average+90) > 180){
-                if (gyroX < 0 ){
-                    setGaugeValue((int)((180 - sensor.average) + (gyroX + 180)),sensor);
-                }
-                else if(gyroX > 0){
-                    setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
-                }
-            }
-            else if((sensor.average-90) < -180){
-                if(gyroX < 0 ){
-                    setGaugeValue((int)(gyroX + (-1*sensor.average)), sensor);
-                }
-                if(gyroX > 0){
-                    setGaugeValue((int)((-180 - sensor.average) + (gyroX - 180)), sensor);
-                }
-            }
-        }
-    }
-
-
 }
