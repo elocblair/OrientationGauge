@@ -42,7 +42,7 @@
             android:id="@+id/repair"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            app:srcCompat="@drawable/repairlogo" />
+            app:srcCompat ="@drawable/repairlogo" />
 
         <TextView
             android:id="@+id/SensorStatus"
@@ -433,7 +433,7 @@
         android:backgroundTint="@android:color/holo_blue_light"
         android:onClick="stimClicked"
         android:src="@drawable/ic_flash_on_24dp"
-        android:visibility="invisible"
+        android:visibility="visible"
         app:borderWidth="0dp"
         app:fabSize="normal" />
 

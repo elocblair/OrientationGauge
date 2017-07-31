@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -24,13 +25,17 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileOutputStream;
 
 
 public class MainActivity extends AppCompatActivity {
 
     BleService bleService;
     boolean isBound = false;
-    boolean stimNow = false;
+    String filename = "trialData.txt";
+    String path = "/storage/emulated/0/";
+    String string = "Hello World!";
 
 
     private ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -70,12 +75,15 @@ public class MainActivity extends AppCompatActivity {
     //ble connections for the sensor
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     private TextView sensorStatus;
-
+    private static final int REQUEST_EXT_STORAGE = 2;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+        //requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+
 
         if(savedInstanceState!= null){
 
@@ -113,9 +121,15 @@ public class MainActivity extends AppCompatActivity {
             sensorStatus = (TextView) findViewById(R.id.SensorStatus);
 
             stimButton.bringToFront();
-
-            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
+            //requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_EXT_STORAGE);
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_COARSE_LOCATION);
+            if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
+            {
+                Log.v(TAG, "permission granted");
+                writeFile();
+            }
             registerReceiver(broadcastReceiver, new IntentFilter("bleService"));
+
         }
 
     }
@@ -165,12 +179,22 @@ public class MainActivity extends AppCompatActivity {
     //stim button clicked
     public void stimClicked(View v)
     {
-        if(!statusVariables.stimming) {
-            statusVariables.stimming = true;
-            triggerFirefly(fireflyCommands.startStim);
-            timerHandler.postDelayed(fireflyStop, 1000);
-            timerHandler.postDelayed(fireflyDebounce,5000);
+        if(bleService.fireflyGatt != null){
+            if(!statusVariables.stimming) {
+                statusVariables.stimming = true;
+                triggerFirefly(fireflyCommands.startStim);
+                timerHandler.postDelayed(fireflyStop, 1000);
+                timerHandler.postDelayed(fireflyDebounce,5000);
+            }
         }
+        else{
+            bleService.searchingHip = false;
+            bleService.searchingKnee = false;
+            bleService.searchingAnkle = false;
+            bleService.searchingPCM = true;
+            bleService.scanner.startScan(bleService.mScanCallback);
+        }
+
     }
 
 
@@ -183,12 +207,14 @@ public class MainActivity extends AppCompatActivity {
         {
             case PERMISSION_REQUEST_COARSE_LOCATION:
             {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                if ( grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
                     Log.d(TAG, "coarse location permission granted");
                     Intent bleIntent = new Intent(this, BleService.class);
                     startService(bleIntent);
                     bindService(bleIntent, mServiceConnection, this.BIND_AUTO_CREATE);
+
+
                 }
                 else
                 {
@@ -207,8 +233,27 @@ public class MainActivity extends AppCompatActivity {
 
                     });
                     builder.show();
+
                 }
+                writeFile();
                 return;
+            }
+            case REQUEST_EXT_STORAGE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.v(TAG, "storage granted");
+                    try {
+                        Log.v(TAG, "here");
+                        FileOutputStream outputStream = openFileOutput(path+filename,CONTEXT_IGNORE_SECURITY);
+                        outputStream.write(string.getBytes());
+                        outputStream.flush();
+                        outputStream.close();
+                        MediaScannerConnection.scanFile(getAppContext(),new String[]{path+filename},null,null);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+
+                }
             }
         }
     }
@@ -267,14 +312,14 @@ public class MainActivity extends AppCompatActivity {
 
 
     //SENSOR STATUS TEXT
-    public void setSensorStatus(String message)
+    public void setSensorStatus(final String message)
     {
-        final String msg = "Sensor " + message;
+        //final String msg = "Sensor " + message;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
-                sensorStatus.setText(msg);
+                sensorStatus.setText(message);
 
             }
         });
@@ -320,6 +365,7 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingHip = true;
             bleService.searchingKnee = false;
             bleService.searchingAnkle = false;
+            bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
         }
         else{
@@ -340,6 +386,7 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingKnee = true;
             bleService.searchingHip = false;
             bleService.searchingAnkle = false;
+            bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
         }
         else{
@@ -360,6 +407,7 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingHip = false;
             bleService.searchingKnee = false;
             bleService.searchingAnkle = true;
+            bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
         }
         else{
@@ -388,6 +436,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             stimButton.setVisibility(View.VISIBLE);
+                            setSensorStatus("PCM connected");
+                            //stimButton.setBackgroundResource(R.drawable.cast_ic_notification_0);
                         }
                     });
                 }
@@ -518,6 +568,23 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-
+    /*public void pcmConnect(View v){
+        bleService.searchingHip = false;
+        bleService.searchingKnee = false;
+        bleService.searchingAnkle = false;
+        bleService.searchingPCM = true;
+        bleService.scanner.startScan(bleService.mScanCallback);
+    }*/
+    public void writeFile(){
+        try {
+            Log.v(TAG, "here");
+            FileOutputStream outputStream = new FileOutputStream(path+filename);
+            outputStream.write(string.getBytes());
+            outputStream.flush();
+            outputStream.close();
+            MediaScannerConnection.scanFile(getAppContext(),new String[]{path+filename},null,null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
