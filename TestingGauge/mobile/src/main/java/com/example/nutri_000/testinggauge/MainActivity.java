@@ -27,15 +27,24 @@ import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.text.DateFormat;
+import java.util.Date;
 
 
 public class MainActivity extends AppCompatActivity {
 
     BleService bleService;
     boolean isBound = false;
-    String filename = "trialData.txt";
+    boolean fileCreated = false;
+    boolean writeDebounce = false;
+    String fileName = "trialData_";
+    String randomID = "0001_";
     String path = "/storage/emulated/0/";
     String string = "Hello World!";
+    String dateTime = DateFormat.getDateTimeInstance().format(new Date());
+    String fileType = ".txt";
+    String fullPath = path+fileName+randomID+dateTime+fileType;
+
 
 
     private ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -45,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
             bleService = binder.getService();
             isBound = true;
             bleService.initializeBle();
-            bleService.scanner.startScan(bleService.mScanCallback);
+            //bleService.scanner.startScan(bleService.mScanCallback);
 
         }
 
@@ -137,32 +146,38 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        /*if(fireflyGatt != null) {
-            fireflyGatt.disconnect();
-            fireflyGatt.close();
-        }*/
+        if(bleService.fireflyGatt != null) {
+            bleService.fireflyGatt.disconnect();
+            bleService.fireflyGatt.close();
+            bleService.fireflyGatt = null;
+        }
+        if(bleService.hipGatt != null) {
+            bleService.hipGatt.disconnect();
+            bleService.hipGatt.close();
+            bleService.hipGatt = null;
+        }
+        if(bleService.kneeGatt != null) {
+            bleService.kneeGatt.disconnect();
+            bleService.kneeGatt.close();
+            bleService.kneeGatt = null;
+        }
+        if(bleService.ankleGatt != null) {
+            bleService.ankleGatt.disconnect();
+            bleService.ankleGatt.close();
+            bleService.ankleGatt = null;
+        }
         Log.v("onDestroy", "DESTROYED");
     }
     @Override
     protected void onStop() {
 
         super.onStop();
-
-        /*if(fireflyGatt != null) {
-            fireflyGatt.disconnect();
-            fireflyGatt.close();
-        }*/
-        //adapter.disable();
         Log.v("onStop", "STOPPED");
     }
     @Override
     protected void onPause(){
         super.onPause();
 
-        /*if(fireflyGatt != null) {
-            fireflyGatt.disconnect();
-            fireflyGatt.close();
-        }*/
     }
 
     public void onRestoreInstanceState(Bundle savedInstanceState){
@@ -185,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
                 triggerFirefly(fireflyCommands.startStim);
                 timerHandler.postDelayed(fireflyStop, 1000);
                 timerHandler.postDelayed(fireflyDebounce,5000);
+                writeFile();
             }
         }
         else{
@@ -235,25 +251,7 @@ public class MainActivity extends AppCompatActivity {
                     builder.show();
 
                 }
-                writeFile();
                 return;
-            }
-            case REQUEST_EXT_STORAGE: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.v(TAG, "storage granted");
-                    try {
-                        Log.v(TAG, "here");
-                        FileOutputStream outputStream = openFileOutput(path+filename,CONTEXT_IGNORE_SECURITY);
-                        outputStream.write(string.getBytes());
-                        outputStream.flush();
-                        outputStream.close();
-                        MediaScannerConnection.scanFile(getAppContext(),new String[]{path+filename},null,null);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-
-                }
             }
         }
     }
@@ -286,8 +284,23 @@ public class MainActivity extends AppCompatActivity {
                     sensor.leftPB.setProgress(0);
                     sensor.rightPB.setProgress(value);
                 }
-                if (value > sensor.rightSB.getProgress() | (value*-1) > sensor.leftSB.getProgress()){
+                if (value > sensor.rightSB.getProgress() ){
                     sensor.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
+                    if(!writeDebounce){
+                        writeFile(sensor.rightSB.getProgress(), sensor);
+                        writeDebounce = true;
+                        timerHandler.postDelayed(debounceWrite, 1000);
+                    }
+
+                }
+                if ( (value*-1) > sensor.leftSB.getProgress()){
+                    sensor.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
+                    if(!writeDebounce){
+                        writeFile(sensor.leftSB.getProgress(), sensor);
+                        writeDebounce = true;
+                        timerHandler.postDelayed(debounceWrite, 1000);
+                    }
+
                 }
 
                 if (value < sensor.rightSB.getProgress() & (value*-1) < sensor.leftSB.getProgress()){
@@ -349,7 +362,12 @@ public class MainActivity extends AppCompatActivity {
             statusVariables.stimming = false;
         }
     };
-
+    Runnable debounceWrite = new Runnable(){
+        @Override
+        public void run(){
+            writeDebounce = false;
+        }
+    };
 
     public void connectThigh(View v){
         if(bleService.hipGatt == null){
@@ -369,7 +387,7 @@ public class MainActivity extends AppCompatActivity {
             bleService.scanner.startScan(bleService.mScanCallback);
         }
         else{
-            hipUI.calibrateSensor(hipUI);
+            //hipUI.calibrateSensor(hipUI);
         }
     }
     public void connectLowerLeg(View v){
@@ -390,7 +408,7 @@ public class MainActivity extends AppCompatActivity {
             bleService.scanner.startScan(bleService.mScanCallback);
         }
         else{
-            kneeUI.calibrateSensor(kneeUI);
+           // kneeUI.calibrateSensor(kneeUI);
         }
     }
     public void connectFoot(View v){
@@ -412,7 +430,7 @@ public class MainActivity extends AppCompatActivity {
         }
         else{
 
-            ankleUI.calibrateSensor(ankleUI);
+            //ankleUI.calibrateSensor(ankleUI);
         }
     }
 
@@ -424,12 +442,33 @@ public class MainActivity extends AppCompatActivity {
             if(eventType.equals("sensorConnected")){
                 if(extras.getString("gatt").equals("hip")){
                     connectSensor(hipUI);
+                    hipUI.connect.setOnLongClickListener(new View.OnLongClickListener(){
+                        @Override
+                        public boolean onLongClick(View v){
+                            hipUI.calibrateSensor(hipUI);
+                            return true;
+                        }
+                    });
                 }
                 if(extras.getString("gatt").equals("knee")){
                     connectSensor(kneeUI);
+                    kneeUI.connect.setOnLongClickListener(new View.OnLongClickListener(){
+                        @Override
+                        public boolean onLongClick(View v){
+                            kneeUI.calibrateSensor(kneeUI);
+                            return true;
+                        }
+                    });
                 }
                 if(extras.getString("gatt").equals("ankle")){
                     connectSensor(ankleUI);
+                    ankleUI.connect.setOnLongClickListener(new View.OnLongClickListener(){
+                        @Override
+                        public boolean onLongClick(View v){
+                            ankleUI.calibrateSensor(ankleUI);
+                            return true;
+                        }
+                    });
                 }
                 if(extras.getString("gatt").equals("firefly")){
                     runOnUiThread(new Runnable() {
@@ -446,19 +485,31 @@ public class MainActivity extends AppCompatActivity {
             if(eventType.equals("sensorDisconnected")){
                 if(extras.getString("gatt").equals("hip")){
                     onSensorDisconnected(hipUI);
-                    bleService.hipGatt.close();
-                    bleService.hipGatt = null;
+                    if(bleService.hipGatt != null){
+                        bleService.hipGatt.close();
+                        bleService.hipGatt = null;
+                    }
+
                 }
                 if(extras.getString("gatt").equals("knee")){
                     onSensorDisconnected(kneeUI);
-                    bleService.kneeGatt.close();
-                    bleService.kneeGatt = null;
+                    if(bleService.kneeGatt != null){
+                        bleService.kneeGatt.close();
+                        bleService.kneeGatt = null;
+                    }
                 }
                 if(extras.getString("gatt").equals("ankle")){
                     onSensorDisconnected(ankleUI);
-                    bleService.ankleGatt.close();
-                    bleService.ankleGatt = null;
-
+                    if(bleService.ankleGatt != null){
+                        bleService.ankleGatt.close();
+                        bleService.ankleGatt = null;
+                    }
+                }
+                if(extras.getString("gatt").equals("firefly")){
+                    if(bleService.fireflyGatt != null){
+                        bleService.fireflyGatt.close();
+                        bleService.fireflyGatt = null;
+                    }
                 }
             }
             if(eventType.equals("notification")){
@@ -568,21 +619,60 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    /*public void pcmConnect(View v){
-        bleService.searchingHip = false;
-        bleService.searchingKnee = false;
-        bleService.searchingAnkle = false;
-        bleService.searchingPCM = true;
-        bleService.scanner.startScan(bleService.mScanCallback);
-    }*/
     public void writeFile(){
         try {
-            Log.v(TAG, "here");
-            FileOutputStream outputStream = new FileOutputStream(path+filename);
-            outputStream.write(string.getBytes());
-            outputStream.flush();
-            outputStream.close();
-            MediaScannerConnection.scanFile(getAppContext(),new String[]{path+filename},null,null);
+            if(!fileCreated){
+                FileOutputStream outputStream = new FileOutputStream(fullPath);
+                string = "file created on: " + dateTime + "\n";
+                outputStream.write(string.getBytes());
+                outputStream.flush();
+                outputStream.close();
+                //MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
+                fileCreated = true;
+            }
+            else{
+                FileOutputStream outputStream = new FileOutputStream(fullPath, true);
+                outputStream.write(dateTime.getBytes());
+                outputStream.flush();
+                outputStream.close();
+                MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void writeFile(int threshold, SensorUI sensor){
+        try {
+            if(!fileCreated){
+                FileOutputStream outputStream = new FileOutputStream(fullPath);
+                string = "file created on: " + dateTime + "\n";
+                outputStream.write(string.getBytes());
+                outputStream.flush();
+                outputStream.close();
+                //MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
+                fileCreated = true;
+            }
+            else{
+                FileOutputStream outputStream = new FileOutputStream(fullPath, true);
+                String sensorName = "forty-two";
+                if(sensor == hipUI){
+                    sensorName = " hip ";
+                }
+                if(sensor == kneeUI){
+                    sensorName = " knee ";
+                }
+                if(sensor == ankleUI){
+                    sensorName = " ankle ";
+                }
+                String currentDateTime = DateFormat.getDateTimeInstance().format(new Date());
+                String data = Integer.toString(threshold) + sensorName + currentDateTime + "\n";
+                outputStream.write(data.getBytes());
+                outputStream.flush();
+                outputStream.close();
+                MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

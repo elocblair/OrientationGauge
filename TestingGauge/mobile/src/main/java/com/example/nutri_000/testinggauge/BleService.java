@@ -32,6 +32,7 @@ public class BleService extends Service {
     private BluetoothAdapter adapter;
     public BluetoothLeScanner scanner;
     public boolean searchingHip, searchingKnee, searchingAnkle = false;
+    public boolean searchingPCM = true;
     BluetoothGatt hipGatt, kneeGatt, ankleGatt, fireflyGatt;
     private int connected = 2;
     private int connecting = 1;
@@ -95,26 +96,33 @@ public class BleService extends Service {
             if(deviceName != null){
                 if(deviceName.equals("JohnCougarMellenc")){
                     sensor = device.getDevice();
-                    scanner.stopScan(mScanCallback);
-                    scanning = false;
                     String bleEvent = "scan";
                     intent.putExtra("bleEvent", bleEvent);
                     sendBroadcast(intent);
                     if(searchingHip){
+                        scanner.stopScan(mScanCallback);
+                        scanning = false;
                         hipGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
                     }
                     else if(searchingKnee){
+                        scanner.stopScan(mScanCallback);
+                        scanning = false;
                         kneeGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
                     }
                     else if(searchingAnkle){
+                        scanner.stopScan(mScanCallback);
+                        scanning = false;
                         ankleGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
                     }
                 }
-                if(deviceName.equals("FireflyPCM")){
+                if(device.getDevice().getAddress().equals("24:71:89:19:FC:07")){
                     sensor = device.getDevice();
-                    scanner.stopScan(mScanCallback);
-                    scanning = false;
-                    fireflyGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
+                    if(searchingPCM){
+                        scanner.stopScan(mScanCallback);
+                        scanning = false;
+                        fireflyGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
+                    }
+
                 }
             }
         }
@@ -179,6 +187,7 @@ public class BleService extends Service {
                     intent.putExtra("gatt","ankle");
                 }
                 else if(gatt.equals(fireflyGatt)){
+                    intent.putExtra("gatt","firefly");
                     fireflyFound = false;
                 }
                 else{
