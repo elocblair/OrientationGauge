@@ -67,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "Cole";
 
-    private final static int REQUEST_ENABLE_BT = 1;
 
     Handler timerHandler = new Handler();
     Status statusVariables = new Status();
@@ -82,17 +81,12 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton stimButton;
 
     //ble connections for the sensor
-    private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     private TextView sensorStatus;
-    private static final int REQUEST_EXT_STORAGE = 2;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
-        //requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-
 
         if(savedInstanceState!= null){
 
@@ -130,6 +124,20 @@ public class MainActivity extends AppCompatActivity {
             sensorStatus = (TextView) findViewById(R.id.SensorStatus);
 
             stimButton.bringToFront();
+            stimButton.setOnLongClickListener(new View.OnLongClickListener(){
+                  @Override
+                  public boolean onLongClick(View v){
+                      if(bleService.fireflyGatt != null){
+                          bleService.fireflyGatt.disconnect();
+                          bleService.fireflyGatt.close();
+                          bleService.fireflyGatt = null;
+                          setSensorStatus("PCM Disconnected");
+                          stimButton.setImageResource(R.drawable.ic_flash_off_black_24dp);
+                          bleService.fireflyFound = false;
+                      }
+                      return true;
+                  }
+            });
             //requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_EXT_STORAGE);
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_COARSE_LOCATION);
             if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
@@ -208,12 +216,10 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingKnee = false;
             bleService.searchingAnkle = false;
             bleService.searchingPCM = true;
+            setSensorStatus("Searching for PCM");
             bleService.scanner.startScan(bleService.mScanCallback);
         }
-
     }
-
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -229,8 +235,6 @@ public class MainActivity extends AppCompatActivity {
                     Intent bleIntent = new Intent(this, BleService.class);
                     startService(bleIntent);
                     bindService(bleIntent, mServiceConnection, this.BIND_AUTO_CREATE);
-
-
                 }
                 else
                 {
@@ -374,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    setSensorStatus("Searching");
+                    setSensorStatus("Searching for Hip");
                     hipUI.connect.setBackgroundResource(R.drawable.hipyellow);
                     if(bleService.kneeGatt ==  null){kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);}
                     if(bleService.ankleGatt ==  null){ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);}
@@ -395,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    setSensorStatus("Searching");
+                    setSensorStatus("Searching for Knee");
                     kneeUI.connect.setBackgroundResource(R.drawable.kneeyellow);
                     if(bleService.ankleGatt ==  null){ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);}
                     if(bleService.hipGatt ==  null){hipUI.connect.setBackgroundResource(R.drawable.hipwhite);}
@@ -416,7 +420,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    setSensorStatus("Searching");
+                    setSensorStatus("Searching for Ankle");
                     ankleUI.connect.setBackgroundResource(R.drawable.ankleyellow);
                     if(bleService.hipGatt ==  null){hipUI.connect.setBackgroundResource(R.drawable.hipwhite);}
                     if(bleService.kneeGatt ==  null){kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);}
@@ -475,10 +479,13 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             stimButton.setVisibility(View.VISIBLE);
-                            setSensorStatus("PCM connected");
-                            //stimButton.setBackgroundResource(R.drawable.cast_ic_notification_0);
+                            setSensorStatus("PCM Connected");
+                            stimButton.setImageResource(R.drawable.ic_flash_on_24dp);
                         }
                     });
+                }
+                if (extras.getString("gatt").equals("unknown")) {
+                    Log.v(TAG, "unknown gatt");
                 }
                 Log.v("bleService", "connected message sent");
             }
@@ -506,9 +513,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 if(extras.getString("gatt").equals("firefly")){
+                    setSensorStatus("PCM Disconnected");
                     if(bleService.fireflyGatt != null){
                         bleService.fireflyGatt.close();
                         bleService.fireflyGatt = null;
+                        stimButton.setImageResource(R.drawable.ic_flash_off_black_24dp);
                     }
                 }
             }
@@ -532,7 +541,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                setSensorStatus("connected");
+                setSensorStatus("Sensor Connected");
                 sensor.connect.setBackgroundResource(sensor.green);
                 sensor.rightTV.setVisibility(View.VISIBLE);
                 sensor.leftTV.setVisibility(View.VISIBLE);
@@ -551,7 +560,7 @@ public class MainActivity extends AppCompatActivity {
                 sensor.relativeLayout.setBackgroundColor(Color.parseColor("#404040"));
             }
         });
-        setSensorStatus("Disconnected");
+        setSensorStatus("Sensor Disconnected");
         Log.v("BLUETOOTH", "DISCONNECTED");
     }
 
@@ -627,7 +636,6 @@ public class MainActivity extends AppCompatActivity {
                 outputStream.write(string.getBytes());
                 outputStream.flush();
                 outputStream.close();
-                //MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
                 fileCreated = true;
             }
             else{
@@ -650,7 +658,6 @@ public class MainActivity extends AppCompatActivity {
                 outputStream.write(string.getBytes());
                 outputStream.flush();
                 outputStream.close();
-                //MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
                 fileCreated = true;
             }
             else{
