@@ -37,10 +37,14 @@ public class BleService extends Service {
     private int connected = 2;
     private int connecting = 1;
     private int disconnected = 0;
+    public boolean searchingFromDetails = false;
     public boolean scanning = true;
     String TAG = "bleService";
     private IBinder bleBinder = new BleBinder();
     Intent intent;
+    public String[] deviceIDs = new String[30];
+    public int[] deviceRSSIs = new int[30];
+    public int shockclockCount = 0;
     //BluetoothDevice sensor;
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     public BluetoothGattCharacteristic FIREFLY_CHARACTERISTIC2;
@@ -92,41 +96,62 @@ public class BleService extends Service {
             Log.i(TAG, "New LE Device: " + device.getDevice().getName() + " @ " + device.getRssi() + " Address " + device.getDevice().getAddress());
             String deviceName;
             deviceName = device.getDevice().getName();
-            if(deviceName != null){
-                if(deviceName.equals("JohnCougarMellenc")){
+            if(searchingFromDetails){
+                if(deviceName != null){
+                    if(deviceName.equals("JohnCougarMellenc")){
+                        boolean newDevice = true;
+                        for(int i = 0; i<shockclockCount; i++){
+                            if(device.getDevice().getAddress().equals(deviceIDs[i])){
+                                newDevice = false;
+                            }
+                        }
+                        if(newDevice){
+                            deviceIDs[shockclockCount] = device.getDevice().getAddress();
+                            deviceRSSIs[shockclockCount] = device.getRssi();
+                            shockclockCount++;
+                        }
 
-                    String bleEvent = "scan";
-                    intent.putExtra("bleEvent", bleEvent);
-                    sendBroadcast(intent);
-                    if(searchingHip){
-                        BluetoothDevice sensor = device.getDevice();
-                        scanner.stopScan(mScanCallback);
-                        scanning = false;
-                        hipGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
-                    }
-                    else if(searchingKnee){
-                        BluetoothDevice sensor = device.getDevice();
-                        scanner.stopScan(mScanCallback);
-                        scanning = false;
-                        kneeGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
-                    }
-                    else if(searchingAnkle){
-                        BluetoothDevice sensor = device.getDevice();
-                        scanner.stopScan(mScanCallback);
-                        scanning = false;
-                        ankleGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
                     }
                 }
-                //if(device.getDevice().getAddress().equals("A0:E6:F8:BF:E6:04")){
-                if(deviceName.equals("FireflyPCM")){
-                    if(searchingPCM){
-                        BluetoothDevice sensor = device.getDevice();
-                        scanner.stopScan(mScanCallback);
-                        scanning = false;
-                        fireflyGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
-                    }
+            }
+            else{
+                if(deviceName != null){
+                    if(deviceName.equals("JohnCougarMellenc")){
 
+                        String bleEvent = "scan";
+                        intent.putExtra("bleEvent", bleEvent);
+                        sendBroadcast(intent);
+                        if(searchingHip){
+                            BluetoothDevice sensor = device.getDevice();
+                            scanner.stopScan(mScanCallback);
+                            scanning = false;
+                            hipGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
+                        }
+                        else if(searchingKnee){
+                            BluetoothDevice sensor = device.getDevice();
+                            scanner.stopScan(mScanCallback);
+                            scanning = false;
+                            kneeGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
+                        }
+                        else if(searchingAnkle){
+                            BluetoothDevice sensor = device.getDevice();
+                            scanner.stopScan(mScanCallback);
+                            scanning = false;
+                            ankleGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
+                        }
+                    }
+                    //if(device.getDevice().getAddress().equals("A0:E6:F8:BF:E6:04")){
+                    if(deviceName.equals("FireflyPCM")){
+                        if(searchingPCM){
+                            BluetoothDevice sensor = device.getDevice();
+                            scanner.stopScan(mScanCallback);
+                            scanning = false;
+                            fireflyGatt = sensor.connectGatt(getAppContext(),false,bleGattCallback);
+                        }
+
+                    }
                 }
+
             }
         }
     };

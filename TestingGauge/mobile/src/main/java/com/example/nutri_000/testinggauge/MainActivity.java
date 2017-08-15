@@ -218,6 +218,8 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingPCM = true;
             setSensorStatus("Searching for PCM");
             bleService.scanner.startScan(bleService.mScanCallback);
+            bleService.scanning = true;
+            timerHandler.postDelayed(scanStop, 5000);
         }
     }
 
@@ -360,6 +362,25 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    Runnable scanStop = new Runnable() {
+        @Override
+        public void run() {
+            if(bleService.scanning){
+                bleService.scanner.stopScan(bleService.mScanCallback);
+                bleService.scanning = false;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        setSensorStatus("Scan Timeout");
+                        if(bleService.hipGatt == null){hipUI.connect.setBackgroundResource(R.drawable.hipwhite);}
+                        if(bleService.kneeGatt ==  null){kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);}
+                        if(bleService.ankleGatt ==  null){ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);}
+                    }
+                });
+            }
+        }
+    };
+
     Runnable fireflyDebounce = new Runnable(){
         @Override
         public void run(){
@@ -389,6 +410,8 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingAnkle = false;
             bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
+            bleService.scanning = true;
+            timerHandler.postDelayed(scanStop, 5000);
         }
         else{
             //hipUI.calibrateSensor(hipUI);
@@ -410,6 +433,8 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingAnkle = false;
             bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
+            bleService.scanning = true;
+            timerHandler.postDelayed(scanStop, 5000);
         }
         else{
            // kneeUI.calibrateSensor(kneeUI);
@@ -431,6 +456,8 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingAnkle = true;
             bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
+            bleService.scanning = true;
+            timerHandler.postDelayed(scanStop, 5000);
         }
         else{
 
@@ -571,7 +598,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("ankleDeviceAddress", ankleDeviceAddress);
         }
         else{
-            String string = null;
+            String string = "not connected";
             intent.putExtra("ankleDeviceAddress", string);
         }
         if(bleService.kneeGatt != null){
@@ -579,7 +606,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("kneeDeviceAddress", kneeDeviceAddress);
         }
         else{
-            String string = null;
+            String string = "not connected";
             intent.putExtra("kneeDeviceAddress", string);
         }
         if(bleService.hipGatt != null){
@@ -587,7 +614,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("hipDeviceAddress", hipDeviceAddress);
         }
         else{
-            String string = null;
+            String string = "not connected";
             intent.putExtra("hipDeviceAddress", string);
         }
         startActivity(intent);
