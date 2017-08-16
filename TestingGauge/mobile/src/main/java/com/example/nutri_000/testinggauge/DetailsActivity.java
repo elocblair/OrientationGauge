@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -89,8 +90,12 @@ public class DetailsActivity extends AppCompatActivity {
         kneeAddress.setText(kneeDevice);
         ankleAddress.setText(ankleDevice);
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, new IntentFilter("newDevice"));
+        String defaultValue = "000000";
 
-
+    }
+    @Override
+    protected void onDestroy(){
+        super.onDestroy();
     }
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId()== android.R.id.home) {
@@ -169,6 +174,9 @@ public class DetailsActivity extends AppCompatActivity {
             approvedDevice3.setText(dev3);
             approvedDevice1.setText(newDevice);
         }
+        bleService.approvedDevices[0] = approvedDevice1.getText().toString();
+        bleService.approvedDevices[1] = approvedDevice2.getText().toString();
+        bleService.approvedDevices[2] = approvedDevice3.getText().toString();
     }
 
 }

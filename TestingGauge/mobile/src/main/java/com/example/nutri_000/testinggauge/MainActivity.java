@@ -146,6 +146,8 @@ public class MainActivity extends AppCompatActivity {
                 writeFile();
             }
             registerReceiver(broadcastReceiver, new IntentFilter("bleService"));
+            String defaultValue = "000000";
+
 
         }
 
