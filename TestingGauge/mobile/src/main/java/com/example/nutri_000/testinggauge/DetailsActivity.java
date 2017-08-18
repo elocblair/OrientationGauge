@@ -41,6 +41,9 @@ public class DetailsActivity extends AppCompatActivity {
             BleService.BleBinder binder = (BleService.BleBinder) service;
             bleService = binder.getService();
             isBound = true;
+            approvedDevice1.setText(bleService.approvedDevices[0]);
+            approvedDevice2.setText(bleService.approvedDevices[1]);
+            approvedDevice3.setText(bleService.approvedDevices[2]);
             //bleService.initializeBle();
             /*bleService.searchingFromDetails = true;
             bleService.scanner.startScan(bleService.mScanCallback);
@@ -96,6 +99,11 @@ public class DetailsActivity extends AppCompatActivity {
     @Override
     protected void onDestroy(){
         super.onDestroy();
+    }
+    @Override
+    protected void onStop(){
+        super.onStop();
+        bleService.detailsStopped();
     }
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId()== android.R.id.home) {

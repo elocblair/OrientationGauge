@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.hardware.Sensor;
 import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,6 +29,7 @@ import android.util.Log;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 
@@ -39,10 +41,16 @@ public class MainActivity extends AppCompatActivity {
     boolean writeDebounce = false;
     String fileName = "trialData_";
     String randomID = "0001_";
-    String path = "/storage/emulated/0/";
+    String path = "/storage/emulated/0/testData/";
     String string = "Hello World!";
     String dateTime = DateFormat.getDateTimeInstance().format(new Date());
     String fileType = ".txt";
+    ArrayList<String> hipData = new ArrayList<String>();
+    ArrayList<String>  kneeData= new ArrayList<String>();
+    ArrayList<String>  ankleData= new ArrayList<String>();
+    int hipCount = 0;
+    int kneeCount = 0;
+    int ankleCount = 0;
     String fullPath = path+fileName+randomID+dateTime+fileType;
 
 
@@ -55,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
             isBound = true;
             bleService.initializeBle();
             //bleService.scanner.startScan(bleService.mScanCallback);
-
         }
 
         @Override
@@ -138,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
                       return true;
                   }
             });
-            //requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_EXT_STORAGE);
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_COARSE_LOCATION);
             if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
             {
@@ -146,9 +152,6 @@ public class MainActivity extends AppCompatActivity {
                 writeFile();
             }
             registerReceiver(broadcastReceiver, new IntentFilter("bleService"));
-            String defaultValue = "000000";
-
-
         }
 
     }
@@ -182,6 +185,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
 
         super.onStop();
+        //writeFileAtStop("hip = ", hipUI);
+        //writeFileAtStop("knee = ", kneeUI);
+        //writeFileAtStop("ankle = ", ankleUI);
         Log.v("onStop", "STOPPED");
     }
     @Override
@@ -286,16 +292,53 @@ public class MainActivity extends AppCompatActivity {
                 if(value < 0) {
                     sensor.leftPB.setProgress(-1*value);
                     sensor.rightPB.setProgress(0);
-
+                    /*if(sensor == hipUI){
+                        hipData.add( Integer.toString(value) + " ");
+                    
+                        hipData.add(Long.toString(System.currentTimeMillis()) + "\n");
+                     
+                    }
+                    if(sensor == kneeUI){
+                        kneeData.add(Integer.toString(value)+ " ") ;
+                   
+                        kneeData.add(Long.toString(System.currentTimeMillis()) + "\n");
+                      
+                    }
+                    if(sensor == ankleUI){
+                        ankleData.add(Integer.toString(value)+ " ");
+                    
+                        ankleData.add(Long.toString(System.currentTimeMillis()) + "\n");
+                    
+                    }*/
+                    //writeFile(value, sensor);
                 }
                 else if(value > 0){
                     sensor.leftPB.setProgress(0);
                     sensor.rightPB.setProgress(value);
+                    /*if(sensor == hipUI){
+                        hipData.add( Integer.toString(value) + " ");
+                     
+                        hipData.add(Long.toString(System.currentTimeMillis()) + "\n");
+                      
+                    }
+                    if(sensor == kneeUI){
+                        kneeData.add(Integer.toString(value)+ " ") ;
+                      
+                        kneeData.add(Long.toString(System.currentTimeMillis()) + "\n");
+                      
+                    }
+                    if(sensor == ankleUI){
+                        ankleData.add(Integer.toString(value)+ " ");
+                       
+                        ankleData.add(Long.toString(System.currentTimeMillis()) + "\n");
+                        
+                    }*/
+                    //writeFile(value, sensor);
                 }
                 if (value > sensor.rightSB.getProgress() ){
                     sensor.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
                     if(!writeDebounce){
-                        writeFile(sensor.rightSB.getProgress(), sensor);
+                        //writeFile(value, sensor);
                         writeDebounce = true;
                         timerHandler.postDelayed(debounceWrite, 1000);
                     }
@@ -304,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
                 if ( (value*-1) > sensor.leftSB.getProgress()){
                     sensor.relativeLayout.setBackgroundColor(Color.parseColor("#008542"));
                     if(!writeDebounce){
-                        writeFile(sensor.leftSB.getProgress(), sensor);
+                        //writeFile(value, sensor);
                         writeDebounce = true;
                         timerHandler.postDelayed(debounceWrite, 1000);
                     }
@@ -679,7 +722,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-    public void writeFile(int threshold, SensorUI sensor){
+    public void writeFile(int value, SensorUI sensor){
         try {
             if(!fileCreated){
                 FileOutputStream outputStream = new FileOutputStream(fullPath);
@@ -702,12 +745,43 @@ public class MainActivity extends AppCompatActivity {
                     sensorName = " ankle ";
                 }
                 String currentDateTime = DateFormat.getDateTimeInstance().format(new Date());
-                String data = Integer.toString(threshold) + sensorName + currentDateTime + "\n";
+                String data = Integer.toString(value) + sensorName + currentDateTime + "\n";
                 outputStream.write(data.getBytes());
                 outputStream.flush();
                 outputStream.close();
                 MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void writeFileAtStop(String string, SensorUI sensor){
+        try {
+                FileOutputStream outputStream = new FileOutputStream(fullPath, true);
+                String sensorName = "forty-two";
+                String data = string + "\n";
+                if(sensor == hipUI){
+                    //for(int i = 0; i < hipCount; i++){
+                        data = data.concat(hipData.toString());
+                    //}
+                }
+                if(sensor == kneeUI){
+                    //for(int i = 0; i < kneeCount; i++){
+                        data = data.concat(kneeData.toString());
+                    //}
+                }
+                if(sensor == ankleUI){
+                    //for(int i = 0; i < ankleCount; i++){
+                        data = data.concat(ankleData.toString());
+                    //}
+                }
+                String currentDateTime = DateFormat.getDateTimeInstance().format(new Date());
+                //String data = Integer.toString(value) + sensorName + currentDateTime + "\n";
+                outputStream.write(data.getBytes());
+                outputStream.flush();
+                outputStream.close();
+                MediaScannerConnection.scanFile(getAppContext(),new String[]{fullPath},null,null);
 
         } catch (Exception e) {
             e.printStackTrace();

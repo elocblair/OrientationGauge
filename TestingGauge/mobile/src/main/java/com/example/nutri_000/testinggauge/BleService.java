@@ -52,6 +52,8 @@ public class BleService extends Service {
     private BluetoothGattCharacteristic NRF_CHARACTERISTIC;
     public BluetoothGattCharacteristic FIREFLY_CHARACTERISTIC2;
     boolean fireflyFound = false;
+    SharedPreferences sharedPreferences;
+
 
     public class BleBinder extends Binder {
         BleService getService(){
@@ -64,6 +66,10 @@ public class BleService extends Service {
     @Override
     public void onCreate(){
         intent = new Intent(TAG);
+        sharedPreferences = this.getSharedPreferences("savedDevices", Context.MODE_PRIVATE);
+        approvedDevices[0] = sharedPreferences.getString("device1","000000");
+        approvedDevices[1] = sharedPreferences.getString("device2","000000");
+        approvedDevices[2] = sharedPreferences.getString("device3","000000");
     }
 
     public int onStartCommand(Intent intent, int flags, int startId){
@@ -295,4 +301,11 @@ public class BleService extends Service {
             }
         }
     };
+    public void detailsStopped(){
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("device1", approvedDevices[0]);
+        editor.putString("device2", approvedDevices[1]);
+        editor.putString("device3", approvedDevices[2]);
+        editor.commit();
+    }
 }
