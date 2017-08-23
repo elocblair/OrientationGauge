@@ -52,6 +52,10 @@ public class MainActivity extends AppCompatActivity {
     int kneeCount = 0;
     int ankleCount = 0;
     String fullPath = path+fileName+randomID+dateTime+fileType;
+    int scanCount = 20;
+    int footClickCount = 0;
+    int kneeClickCount = 0;
+    int hipClickCount = 0;
 
 
 
@@ -145,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
                       return true;
                   }
             });
+
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_COARSE_LOCATION);
             if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
             {
@@ -185,9 +190,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
 
         super.onStop();
-        //writeFileAtStop("hip = ", hipUI);
-        //writeFileAtStop("knee = ", kneeUI);
-        //writeFileAtStop("ankle = ", ankleUI);
+        writeFileAtStop("hip = ", hipUI);
+        writeFileAtStop("knee = ", kneeUI);
+        writeFileAtStop("ankle = ", ankleUI);
         Log.v("onStop", "STOPPED");
     }
     @Override
@@ -226,8 +231,9 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingPCM = true;
             setSensorStatus("Searching for PCM");
             bleService.scanner.startScan(bleService.mScanCallback);
+            scanCount = 20;
             bleService.scanning = true;
-            timerHandler.postDelayed(scanStop, 5000);
+            timerHandler.postDelayed(scanStop, 1000);
         }
     }
 
@@ -292,47 +298,47 @@ public class MainActivity extends AppCompatActivity {
                 if(value < 0) {
                     sensor.leftPB.setProgress(-1*value);
                     sensor.rightPB.setProgress(0);
-                    /*if(sensor == hipUI){
+                    if(sensor == hipUI){
                         hipData.add( Integer.toString(value) + " ");
-                    
+                        //hipCount++;
                         hipData.add(Long.toString(System.currentTimeMillis()) + "\n");
-                     
+                        //hipCount++;
                     }
                     if(sensor == kneeUI){
                         kneeData.add(Integer.toString(value)+ " ") ;
-                   
+                        //kneeCount++;
                         kneeData.add(Long.toString(System.currentTimeMillis()) + "\n");
-                      
+                        //kneeCount++;
                     }
                     if(sensor == ankleUI){
                         ankleData.add(Integer.toString(value)+ " ");
-                    
+                        //ankleCount++;
                         ankleData.add(Long.toString(System.currentTimeMillis()) + "\n");
-                    
-                    }*/
+                        //ankleCount++;
+                    }
                     //writeFile(value, sensor);
                 }
                 else if(value > 0){
                     sensor.leftPB.setProgress(0);
                     sensor.rightPB.setProgress(value);
-                    /*if(sensor == hipUI){
+                    if(sensor == hipUI){
                         hipData.add( Integer.toString(value) + " ");
-                     
+                        //hipCount++;
                         hipData.add(Long.toString(System.currentTimeMillis()) + "\n");
-                      
+                        //hipCount++;
                     }
                     if(sensor == kneeUI){
                         kneeData.add(Integer.toString(value)+ " ") ;
-                      
+                        //kneeCount++;
                         kneeData.add(Long.toString(System.currentTimeMillis()) + "\n");
-                      
+                        //kneeCount++;
                     }
                     if(sensor == ankleUI){
                         ankleData.add(Integer.toString(value)+ " ");
-                       
+                        //ankleCount++;
                         ankleData.add(Long.toString(System.currentTimeMillis()) + "\n");
-                        
-                    }*/
+                        //ankleCount++;
+                    }
                     //writeFile(value, sensor);
                 }
                 if (value > sensor.rightSB.getProgress() ){
@@ -411,17 +417,23 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             if(bleService.scanning){
-                bleService.scanner.stopScan(bleService.mScanCallback);
-                bleService.scanning = false;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        setSensorStatus("Scan Timeout");
-                        if(bleService.hipGatt == null){hipUI.connect.setBackgroundResource(R.drawable.hipwhite);}
-                        if(bleService.kneeGatt ==  null){kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);}
-                        if(bleService.ankleGatt ==  null){ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);}
-                    }
-                });
+                if(scanCount > 0){
+                    scanCount--;
+                    timerHandler.postDelayed(scanStop, 1000);
+                }
+                else if(scanCount == 0){
+                    bleService.scanner.stopScan(bleService.mScanCallback);
+                    bleService.scanning = false;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setSensorStatus("Scan Timeout");
+                            if(bleService.hipGatt == null){hipUI.connect.setBackgroundResource(R.drawable.hipwhite);}
+                            if(bleService.kneeGatt ==  null){kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);}
+                            if(bleService.ankleGatt ==  null){ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);}
+                        }
+                    });
+                }
             }
         }
     };
@@ -436,6 +448,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run(){
             writeDebounce = false;
+        }
+    };
+    Runnable doubleClick = new Runnable(){
+        @Override
+        public void run(){
+            footClickCount = 0;
+            kneeClickCount = 0;
+            hipClickCount = 0;
         }
     };
 
@@ -455,11 +475,28 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingAnkle = false;
             bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
+            scanCount = scanCount + 20;
             bleService.scanning = true;
-            timerHandler.postDelayed(scanStop, 5000);
+            timerHandler.postDelayed(scanStop, 1000);
         }
-        else{
-            //hipUI.calibrateSensor(hipUI);
+        else {
+            hipClickCount++;
+            timerHandler.postDelayed(doubleClick, 500);
+            if (hipClickCount == 2) {
+                bleService.hipGatt.disconnect();
+                bleService.hipGatt.close();
+                bleService.hipGatt = null;
+                setSensorStatus("hip sensor disconnected");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        hipUI.connect.setBackgroundResource(R.drawable.hipwhite);
+                        hipUI.leftTV.setVisibility(View.INVISIBLE);
+                        hipUI.rightTV.setVisibility(View.INVISIBLE);
+                    }
+                });
+                hipClickCount = 0;
+            }
         }
     }
     public void connectLowerLeg(View v){
@@ -478,13 +515,32 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingAnkle = false;
             bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
+            scanCount = scanCount + 20;
             bleService.scanning = true;
-            timerHandler.postDelayed(scanStop, 5000);
+            timerHandler.postDelayed(scanStop, 1000);
         }
         else{
-           // kneeUI.calibrateSensor(kneeUI);
+            kneeClickCount++;
+            timerHandler.postDelayed(doubleClick,500);
+            if(kneeClickCount == 2){
+                bleService.kneeGatt.disconnect();
+                bleService.kneeGatt.close();
+                bleService.kneeGatt = null;
+                setSensorStatus("knee sensor disconnected");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        kneeUI.connect.setBackgroundResource(R.drawable.kneewhite);
+                        kneeUI.leftTV.setVisibility(View.INVISIBLE);
+                        kneeUI.rightTV.setVisibility(View.INVISIBLE);
+                    }
+                });
+                kneeClickCount = 0;
+            }
         }
+
     }
+
     public void connectFoot(View v){
         if(bleService.ankleGatt == null) {
             runOnUiThread(new Runnable() {
@@ -501,12 +557,28 @@ public class MainActivity extends AppCompatActivity {
             bleService.searchingAnkle = true;
             bleService.searchingPCM = false;
             bleService.scanner.startScan(bleService.mScanCallback);
+            scanCount = scanCount + 20;
             bleService.scanning = true;
-            timerHandler.postDelayed(scanStop, 5000);
+            timerHandler.postDelayed(scanStop, 1000);
         }
         else{
-
-            //ankleUI.calibrateSensor(ankleUI);
+            footClickCount++;
+            timerHandler.postDelayed(doubleClick,500);
+            if(footClickCount == 2){
+                bleService.ankleGatt.disconnect();
+                bleService.ankleGatt.close();
+                bleService.ankleGatt = null;
+                setSensorStatus("ankle sensor disconnected");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ankleUI.connect.setBackgroundResource(R.drawable.anklewhite);
+                        ankleUI.leftTV.setVisibility(View.INVISIBLE);
+                        ankleUI.rightTV.setVisibility(View.INVISIBLE);
+                    }
+                });
+                footClickCount = 0;
+            }
         }
     }
 
@@ -760,24 +832,16 @@ public class MainActivity extends AppCompatActivity {
         try {
                 FileOutputStream outputStream = new FileOutputStream(fullPath, true);
                 String sensorName = "forty-two";
-                String data = string + "\n";
+                String data = string;
                 if(sensor == hipUI){
-                    //for(int i = 0; i < hipCount; i++){
-                        data = data.concat(hipData.toString());
-                    //}
+                        data = data.concat(hipData.toString() + ";\n");
                 }
                 if(sensor == kneeUI){
-                    //for(int i = 0; i < kneeCount; i++){
-                        data = data.concat(kneeData.toString());
-                    //}
+                        data = data.concat(kneeData.toString() + ";\n");
                 }
                 if(sensor == ankleUI){
-                    //for(int i = 0; i < ankleCount; i++){
-                        data = data.concat(ankleData.toString());
-                    //}
+                        data = data.concat(ankleData.toString() + ";\n");
                 }
-                String currentDateTime = DateFormat.getDateTimeInstance().format(new Date());
-                //String data = Integer.toString(value) + sensorName + currentDateTime + "\n";
                 outputStream.write(data.getBytes());
                 outputStream.flush();
                 outputStream.close();
